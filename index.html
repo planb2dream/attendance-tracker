@@ -131,20 +131,20 @@ function openManageSchedule(){
   document.body.insertAdjacentHTML('beforeend',html);
 }
 function freshScheduleRow(day,i,x){
-  const opts=SUBJECTS.map(v=>'<option value="'+esc(v)+'" '+(v===x[2]?'selected':'')+'>'+esc(v)+'</option>').join('')+'<option value="__OTHER__" '+(!SUBJECTS.includes(x[2])?'selected':'')+'>Other (type manually)</option>';
-  const other=SUBJECTS.includes(x[2])?'':'<input class="input freshOther" value="'+esc(x[2])+'" placeholder="Other subject">';
+  const opts=SUBJECT_LIST.map(v=>'<option value="'+esc(v)+'" '+(v===x[2]?'selected':'')+'>'+esc(v)+'</option>').join('')+'<option value="__OTHER__" '+(!SUBJECT_LIST.includes(x[2])?'selected':'')+'>Other (type manually)</option>';
+  const other=SUBJECT_LIST.includes(x[2])?'':'<input class="input freshOther" value="'+esc(x[2])+'" placeholder="Other subject">';
   return '<div class="freshSchRow" style="margin:8px 0;display:flex;gap:6px;align-items:center;flex-wrap:wrap">'
     +'<input class="input freshStart" style="width:110px" type="time" value="'+esc(x[0])+'">'
     +'<input class="input freshEnd" style="width:110px" type="time" value="'+esc(x[1])+'">'
     +'<select class="input freshSubject" style="flex:1;min-width:180px" onchange="freshOtherToggle(this)">'+opts+'</select>'+other
-    +'<button type="button" class="btn outline" onclick="this.closest('.freshSchRow').remove()">×</button></div>';
+    +'<button type="button" class="btn outline" onclick="this.closest(&quot;.freshSchRow&quot;).remove()">×</button></div>';
 }
 function freshOtherToggle(sel){
   const row=sel.closest('.freshSchRow'); let old=row.querySelector('.freshOther');
   if(sel.value==='__OTHER__'&&!old){sel.insertAdjacentHTML('afterend','<input class="input freshOther" placeholder="Other subject">');}
   if(sel.value!=='__OTHER__'&&old)old.remove();
 }
-function addFreshScheduleRow(day){document.getElementById('freshSch'+day).insertAdjacentHTML('beforeend',freshScheduleRow(day,0,['09:00','10:00',SUBJECTS[0]]));}
+function addFreshScheduleRow(day){document.getElementById('freshSch'+day).insertAdjacentHTML('beforeend',freshScheduleRow(day,0,['09:00','10:00',SUBJECT_LIST[0]]));}
 function closeManageSchedule(){const m=document.getElementById('manageScheduleModal');if(m)m.remove();}
 function saveManageSchedule(){
   const ns={};

@@ -82,52 +82,63 @@ function logTab(){let d=parseKey(state.viewDate),dk=key(d),ss=sessionsFor(d),pas
 function classModal(i){let d=parseKey(state.viewDate),ss=sessionsFor(d),s=ss[i];if(!s)return;let modal=`<div class="modal"><div class="modalBox"><div class="row" style="justify-content:space-between"><b>✏️ Actual class</b><button class="btn outline" data-act="closeModal">Close</button></div><p class="small">The original scheduled class is kept in the record. Select what actually happened.</p><label class="label">Actual subject</label>${subjectOptions(s[2])}<label class="label">Start time</label><input id="actualStart" class="input" type="time" value="${s[0]}"><label class="label">End time</label><input id="actualEnd" class="input" type="time" value="${s[1]}"><div class="row" style="margin-top:14px"><button class="btn grow" data-act="saveClassEdit" data-i="${i}">Save actual class</button>${i<(state.settings.schedule[d.getDay()]||[]).length?`<button class="btn outline" data-act="restoreClass" data-i="${i}">Restore schedule</button>`:`<button class="btn outline" data-act="removeExtra" data-i="${i}">Remove</button>`}</div></div></div>`;document.body.insertAdjacentHTML("beforeend",modal)}
 function extraModal(){document.body.insertAdjacentHTML("beforeend",`<div class="modal"><div class="modalBox"><div class="row" style="justify-content:space-between"><b>＋ Add extra class</b><button class="btn outline" data-act="closeModal">Close</button></div><label class="label">Subject</label>${subjectOptions("")}<label class="label">Start time</label><input id="extraStart" class="input" type="time" value="15:00"><label class="label">End time</label><input id="extraEnd" class="input" type="time" value="16:00"><button class="btn" style="width:100%;margin-top:14px" data-act="saveExtra">Add class</button></div></div>`)}
 function combinedALCRows(st,filter="all"){
-  // A combined card is shown ONLY when the same subject actually has:
-  // 1) a normal/before-lunch class, and
-  // 2) an after-lunch ALC class.
-  // Merely existing in SUBJECT_LIST is not enough.
-  let map=new Map(st.rows.map(r=>[r.subject,r]));
-  let seen=new Map();
-  let cur=new Date(START_DATE),end=rangeEnd();
-  while(cur<=end){
-    let dk=key(cur);
-    if(filter==="all"||dk.slice(0,7)===filter){
-      let ss=sessionsFor(cur);
-      ss.forEach((x,i)=>{
-        let rec=state.records&&state.records[sessionKey(dk,i)];
-        let sub=rec&&rec.subject?rec.subject:x[2];
-        let stime=rec&&rec.start?rec.start:x[0];
-        if(/\(Clinical\)$/.test(sub))return;
-        let base=subjectBase(sub);
-        if(!base)return;
-        let info=seen.get(base)||{normal:false,alc:false};
-        if(sub===base && String(stime)<"15:00")info.normal=true;
-        if(sub===base+" (ALC)" && String(stime)>="15:00")info.alc=true;
-        seen.set(base,info);
-      });
+  // Flexible combined attendance:
+  // Build combinations ONLY from classes that were actually saved, not from the weekly timetable.
+  // Any subject can qualify: if the same subject has a held class before lunch and another
+  // held class after lunch, it gets a combined card. The subject name itself does not matter.
+  const groups=new Map();
+  const records=state.records||{};
+  Object.entries(records).forEach(([recordKey,rec])=>{
+    const dk=String(recordKey).slice(0,10);
+    if(filter!=="all" && dk.slice(0,7)!==filter)return;
+    const status=state.status[recordKey];
+    // A combination represents classes that actually happened. Ignore pending and Not Held.
+    if(status!==STATUS.ATTENDED && status!==STATUS.ABSENT && status!==STATUS.LEAVE)return;
+    const subject=String(rec&&rec.subject||"").trim();
+    const start=String(rec&&rec.start||"");
+    if(!subject || /\(Clinical\)$/.test(subject))return;
+    const base=subjectBase(subject);
+    if(!base)return;
+    const period=start>="15:00"?"after":"before";
+    let g=groups.get(base);
+    if(!g){
+      g={before:{attended:0,absent:0,leave:0},after:{attended:0,absent:0,leave:0}};
+      groups.set(base,g);
     }
-    cur=add(cur,1);
-  }
-  let bases=[...seen.entries()].filter(([,v])=>v.normal&&v.alc).map(([b])=>b).sort((a,b)=>a.localeCompare(b));
-  return bases.map(base=>{
-    let normal=map.get(base)||{attended:0,absent:0,leave:0,notHeld:0,pending:0,total:0,held:0,pct:null};
-    let alc=map.get(base+" (ALC)")||{attended:0,absent:0,leave:0,notHeld:0,pending:0,total:0,held:0,pct:null};
-    let attended=normal.attended+alc.attended;
-    let absent=normal.absent+alc.absent;
-    let leave=(normal.leave||0)+(alc.leave||0);
-    let held=attended+absent+leave;
-    let pct=held?attended/held*100:null;
-    return {subject:base+" + "+base+" (ALC)",attended,absent,leave,held,pct,combined:true};
+    const bucket=g[period];
+    if(status===STATUS.ATTENDED)bucket.attended++;
+    else if(status===STATUS.ABSENT)bucket.absent++;
+    else if(status===STATUS.LEAVE)bucket.leave++;
   });
+
+  return [...groups.entries()]
+    .filter(([,g])=>{
+      const beforeHeld=g.before.attended+g.before.absent+g.before.leave;
+      const afterHeld=g.after.attended+g.after.absent+g.after.leave;
+      return beforeHeld>0 && afterHeld>0;
+    })
+    .sort(([a],[b])=>a.localeCompare(b))
+    .map(([base,g])=>{
+      const attended=g.before.attended+g.after.attended;
+      const absent=g.before.absent+g.after.absent;
+      const leave=g.before.leave+g.after.leave;
+      const held=attended+absent+leave;
+      return {
+        subject:base+" — Morning + After-Lunch",
+        attended,absent,leave,held,
+        pct:held?attended/held*100:null,
+        combined:true
+      };
+    });
 }
 function attendanceAdvice(r){if(r.held===0)return "No held classes yet";let req=Number(state.settings.required)||75, q=req/100;if(q>=1){return r.attended===r.held?"✓ 100% attendance — do not miss any class":"Need to attend all future classes; 100% can only be reached if no class was missed"}if(r.pct>=req){let canMiss=Math.floor(r.attended/q-r.held+1e-9);if(canMiss<0)canMiss=0;return canMiss===0?"✓ Attendance is enough, but you cannot miss the next class":"✓ Attendance is enough — you can miss "+canMiss+" more class"+(canMiss===1?"":"es")+" and still stay at or above "+req+"%"}let needed=Math.ceil((q*r.held-r.attended)/(1-q));if(needed<0)needed=0;return "⚠ Need to attend the next "+needed+" class"+(needed===1?"":"es")+" consecutively to reach "+req+"%"}
 function statsCard(r,label=""){let cls=r.pct===null?"":r.pct>=state.settings.required?"safe":r.pct>=state.settings.required-5?"warning":"danger";return `<div class="card subject"><div class="subjectHead"><div class="subjectName">${esc(r.subject)}${label}</div><div class="pct ${cls}">${r.pct===null?"—":r.pct.toFixed(1)+"%"}</div></div><div class="bar"><i style="width:${r.pct||0}%"></i></div><div class="subjectMeta"><span>Present ${r.attended} · Absent ${r.absent}</span><span>Held ${r.held}</span></div><div style="font-size:11px;margin-top:8px">${attendanceAdvice(r)}</div></div>`}
 function statsTab(){let filter=state.statsFilter,st=compute(filter),pct=st.percent===null?0:Math.min(100,st.percent),months=[];let c=new Date(START_DATE.getFullYear(),START_DATE.getMonth(),1),e=new Date(today().getFullYear(),today().getMonth(),1);while(c<=e){months.push(key(c).slice(0,7));c=new Date(c.getFullYear(),c.getMonth()+1,1)}let h=`<div class="tabs"><button class="filter ${filter==="all"?"active":""}" data-act="filter" data-v="all">Overall</button>${months.slice().reverse().map(m=>`<button class="filter ${filter===m?"active":""}" data-act="filter" data-v="${m}">${parseKey(m+"-01").toLocaleDateString("en-GB",{month:"short",year:"2-digit"})}</button>`).join("")}</div><div class="card statsHero"><div class="ring" style="--p:${pct}%"><div class="ringIn">${st.percent===null?"—":st.percent.toFixed(1)+"%"}</div></div><b>Overall attendance</b><div class="small">${st.attended} present of ${st.held} held classes</div></div><div class="grid4"><div class="card metric"><b>${st.attended}</b><span>Present</span></div><div class="card metric"><b>${st.absent}</b><span>Absent</span></div><div class="card metric"><b>${st.pending}</b><span>Pending</span></div></div><div class="sectionTitle">📚 Subject attendance</div>`;
 // Individual subjects only — combined rows are deliberately kept out of this section.
 st.rows.forEach(r=>h+=statsCard(r));
-// Combined Subject + Subject (ALC) cards get their own separate section.
+// Flexible combinations from actually saved classes get their own separate section.
 let combined=combinedALCRows(st,filter);
-if(combined.length){h+=`<div class="sectionTitle">🔗 Subject + Subject (ALC)</div>`;combined.forEach(r=>h+=statsCard(r," 🔗"))}
+if(combined.length){h+=`<div class="sectionTitle">🔗 Combined Morning & After-Lunch Attendance</div><div class="small" style="margin:-4px 0 10px">Shown automatically when the same subject has actually been held both before and after lunch.</div>`;combined.forEach(r=>h+=statsCard(r," 🔗"))}
 return h}
 function calendarTab(){let m=parseKey(state.calendarMonth),y=m.getFullYear(),mo=m.getMonth(),first=new Date(y,mo,1),start=first.getDay(),days=new Date(y,mo+1,0).getDate();let h=`<div class="card calendar"><div class="row" style="justify-content:space-between;margin-bottom:10px"><button class="btn outline" data-act="calPrev">‹</button><b>${monthFmt(first)}</b><button class="btn outline" data-act="calNext">›</button></div><div class="calGrid">${["Sun","Mon","Tue","Wed","Thu","Fri","Sat"].map(x=>`<div class="calDow">${x}</div>`).join("")}${Array.from({length:start},()=>`<div class="calDay empty"></div>`).join("")}`;for(let n=1;n<=days;n++){let d=new Date(y,mo,n),dk=key(d),ss=sessionsFor(d),dot="";if(state.holidays[dk])dot="holiday";else if(ss.length){let vals=ss.map((_,i)=>statusOf(dk,i));if(vals.some(v=>v===STATUS.ABSENT||v===STATUS.LEAVE))dot=vals.some(v=>v===STATUS.ATTENDED)?"mix":"bad";else if(vals.some(v=>v===STATUS.ATTENDED))dot="good"}h+=`<button class="calDay ${dk===key(today())?"today":""}" data-act="calPick" data-v="${dk}">${n}${dot?`<i class="dot ${dot}"></i>`:""}</button>`}h+=`</div></div><div class="banner info">🟢 Present · 🔴 Absent · 🟡 Mixed · 🟣 Holiday. Tap a date to open its log.</div>`;return h}
 function settingsTab(){let s=state.settings;return `<div class="card formCard"><b>⚙️ Settings</b><label class="label">Name</label><input id="setName" class="input" value="${esc(s.name)}"><label class="label">Course / Academic part</label><input id="setCourse" class="input" value="${esc(s.course)}"><label class="label">Minimum required attendance (%)</label><input id="setRequired" class="input" type="number" min="1" max="100" value="${s.required}"><p class="small" style="margin-top:12px">🔒 Attendance logging time is fixed at 6:00 AM and cannot be changed.</p><label class="label">Clinical Posting Roll Number</label>${s.rollLocked&&s.rollNumber?`<div class="input" style="display:flex;align-items:center;justify-content:space-between"><b>${esc(s.rollNumber)}</b><span>🔒 Permanently locked</span></div><p class="small">Your roll number is permanently saved and cannot be changed.</p>`:`<input id="setRoll" class="input" type="number" min="1" max="100" value="${esc(s.rollNumber||"")}" placeholder="Enter your roll number (1–100)"><p class="small">⚠️ Check carefully. Once saved, your roll number will be permanently locked.</p>`}<p class="small">The app automatically switches to the new roll-number group arrangement from 9 Aug 2027.</p><label class="label">Appearance</label><select id="setTheme" class="input"><option value="system" ${s.theme==="system"?"selected":""}>System default</option><option value="light" ${s.theme==="light"?"selected":""}>Light</option><option value="dark" ${s.theme==="dark"?"selected":""}>Dark</option></select><div style="margin-top:14px"><button class="btn" data-act="saveSettings">Save settings</button></div></div><div class="card formCard"><b>💾 Backup & Restore</b><p class="small">Your attendance is stored locally on this device. Keep backups before changing phones or reinstalling the app.</p><div class="row"><button class="btn soft grow" data-act="export">Export backup</button><button class="btn outline grow" data-act="import">Restore backup</button></div><input id="backupFile" type="file" accept="application/json" class="hidden"></div><div class="card formCard"><b>📚 Schedule</b><p class="small">Schedule changes apply to new/unsaved classes. Saved attendance keeps its original subject permanently for accurate history and statistics.</p><button class="btn outline" type="button" onclick="openManageSchedule()">Manage schedule</button></div><p class="small" style="text-align:center">Tracking starts on 7 Sep 2026 and continues indefinitely.</p>`}

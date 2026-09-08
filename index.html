@@ -50,7 +50,16 @@ function watchSystemTheme(){
   else if(media.addListener)media.addListener(update);
 }
 function editable(k){let d=parseKey(k),t=today();if(d<START_DATE||d>t)return false;if(d.getTime()===t.getTime())return new Date().getHours()>=Number(state.settings.unlockHour||0);return true}
-function attendanceEditable(k,i){if(!editable(k))return false;let d=parseKey(k),t=today();if(d<t)return !Object.prototype.hasOwnProperty.call(state.status,sessionKey(k,i));return true}
+function attendanceEditable(k,i){
+  if(!editable(k))return false;
+  const d=parseKey(k),t=today(),sk=sessionKey(k,i);
+  // Today stays fully editable. For past dates, only the FINAL saved state matters:
+  // a class is locked only when it currently has a saved attendance status.
+  // If it was cleared and that cleared state was saved before midnight, it remains
+  // available for one-time entry as a missed past class.
+  if(d<t)return !Object.prototype.hasOwnProperty.call(state.status,sk);
+  return true
+}
 function subjectBase(s){return String(s).replace(/\s\(ALC\)$/," ").replace(/\s\(Clinical\)$/," ").trim()}
 function subjectKind(s){return /\(ALC\)$/.test(s)?1:/\(Clinical\)$/.test(s)?2:0}
 function subjects(){let set=new Set,raw=[];let scan=d=>sessionsFor(d).forEach(s=>{if(!set.has(s[2])){set.add(s[2]);raw.push(s[2])}});Object.values(state.settings.schedule).forEach(a=>(a||[]).forEach(s=>{if(s[2]!=="Clinical Posting"&&!set.has(s[2])){set.add(s[2]);raw.push(s[2])}}));let cur=new Date(START_DATE),endd=rangeEnd();while(cur<=endd){scan(cur);cur=add(cur,1)};let bases=[];raw.forEach(x=>{let b=subjectBase(x);if(!bases.includes(b))bases.push(b)});return raw.slice().sort((a,b)=>{let ba=subjectBase(a),bb=subjectBase(b),ia=bases.indexOf(ba),ib=bases.indexOf(bb);if(ia!==ib)return ia-ib;return subjectKind(a)-subjectKind(b)})}
@@ -71,7 +80,7 @@ function statusOf(dateKey,i){return state.status[sessionKey(dateKey,i)]}
 function draftValue(k){return Object.prototype.hasOwnProperty.call(draftStatus,k)?draftStatus[k]:state.status[k]}
 function ensureDraft(dk){if(draftDate!==dk){draftDate=dk;draftStatus={}}}
 function setStatus(k,v){let dk=k.slice(0,10),i=Number(k.slice(dk.length+1));if(!attendanceEditable(dk,i))return;ensureDraft(dk);let current=draftValue(k);if(current===v){draftStatus[k]=null}else{draftStatus[k]=v}render()}
-function saveAttendance(dk){if(!editable(dk))return;ensureDraft(dk);let changes=Object.keys(draftStatus);if(!changes.length){toast("No attendance changes to save");return}if(!confirm("Save the selected attendance? Saved past classes will be permanently locked."))return;state.records=state.records||{};let ss=sessionsFor(parseKey(dk));changes.forEach(k=>{let v=draftStatus[k],i=Number(k.slice(dk.length+1));if(v){state.status[k]=v;let x=ss[i];if(x)state.records[k]={subject:x[2],scheduled:x._scheduled||x[2],start:x[0],end:x[1]}}else{delete state.status[k];delete state.records[k]}});save();draftStatus={};draftDate=dk;render();toast("Attendance saved") }
+function saveAttendance(dk){if(!editable(dk))return;ensureDraft(dk);let changes=Object.keys(draftStatus);if(!changes.length){toast("No attendance changes to save");return}if(!confirm("Save attendance? Today remains editable until midnight. For past dates, only classes with a currently saved status are locked; a class cleared and saved as unmarked remains available for one-time past entry."))return;state.records=state.records||{};let ss=sessionsFor(parseKey(dk));changes.forEach(k=>{let v=draftStatus[k],i=Number(k.slice(dk.length+1));if(v){state.status[k]=v;let x=ss[i];if(x)state.records[k]={subject:x[2],scheduled:x._scheduled||x[2],start:x[0],end:x[1]}}else{delete state.status[k];delete state.records[k]}});save();draftStatus={};draftDate=dk;render();toast("Attendance saved") }
 function toggleHoliday(dk){if(!editable(dk))return;state.holidays[dk]?delete state.holidays[dk]:state.holidays[dk]=true;save();render()}
 function setNote(dk,text){if(!editable(dk))return;if(text.trim())state.notes[dk]=text.trim();else delete state.notes[dk];save();toast("Note saved")}
 function rangeEnd(){return today()}
@@ -146,7 +155,7 @@ function settingsTab(){let s=state.settings;return `<div class="card formCard"><
 function scheduleModal(){let s=state.settings.schedule;let body=`<div class="modal" data-act="closeModal"><div class="modalBox" onclick="event.stopPropagation()"><div class="row" style="justify-content:space-between"><b>Manage weekly schedule</b><button class="btn outline" data-act="closeModal">Close</button></div><p class="small">Edit times and subjects. Changes affect new/unsaved classes only; already saved attendance keeps its original class snapshot.</p>`;for(let day=1;day<=6;day++){body+=`<div class="formCard card"><b>${DAYS[day]}</b><div id="sch${day}">${(s[day]||[]).map((x,i)=>scheduleRow(day,i,x)).join("")}</div><button class="btn soft" data-act="addSession" data-day="${day}">+ Add class</button></div>`}body+=`<div class="row"><button class="btn grow" data-act="saveSchedule">Save schedule</button><button class="btn outline" data-act="closeModal">Cancel</button></div></div></div>`;document.body.insertAdjacentHTML("beforeend",body)}
 function scheduleSubjectSelect(selected){let known=SUBJECT_LIST.includes(selected);let opts=SUBJECT_LIST.map(v=>`<option value="${esc(v)}" ${v===selected?"selected":""}>${esc(v)}</option>`).join("");return `<div class="grow schSubjectWrap"><select class="input schSubject">${known?"":`<option value="__OTHER__" selected>Other (custom)</option>`}${opts}<option value="__OTHER__" ${known?"":"selected"}>Other (type manually)</option></select><input class="input schOther ${known?"hidden":""}" style="margin-top:6px" value="${known?"":esc(selected)}" placeholder="Type subject carefully"></div>`}
 function scheduleRow(day,i,x){return `<div class="row schRow" style="margin:8px 0"><input class="input schStart" style="width:82px" type="time" value="${x[0]}"><input class="input schEnd" style="width:82px" type="time" value="${x[1]}">${scheduleSubjectSelect(x[2])}<button class="btn outline" data-act="removeSession" data-day="${day}">×</button></div>`}
-function footer(){return `<div class="madeby">Made By Sharad Sourav</div>`}
+function footer(){return `<div class="madeby">Made By Sharad Sourav🩺</div>`}
 function bottom(){let items=[["log","▣","Log"],["calendar","▦","Calendar"],["stats","▥","Stats"],["settings","⚙","Settings"]];return `<div class="nav">${items.map(x=>`<button class="${state.tab===x[0]?"active":""}" data-act="tab" data-v="${x[0]}"><b>${x[1]}</b>${x[2]}</button>`).join("")}</div>`}
 function render(){applyTheme();let content=state.tab==="log"?logTab():state.tab==="stats"?statsTab():state.tab==="calendar"?calendarTab():settingsTab();document.getElementById("app").innerHTML=`<div class="app">${header()}<main class="container">${content}${footer()}</main>${bottom()}</div>`}
 function toast(msg){let old=document.querySelector(".toast");if(old)old.remove();let x=document.createElement("div");x.className="toast";x.textContent=msg;document.body.appendChild(x);setTimeout(()=>x.remove(),2200)}

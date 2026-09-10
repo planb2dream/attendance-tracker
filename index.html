@@ -270,82 +270,112 @@ body{letter-spacing:.1px}
 }
 
 
-/* ===== COSMOS EDITION v3 — percentage-responsive crystal stats ===== */
-/* The colored coverage of every percentage card follows its exact attendance %. */
-.container{padding-bottom:170px!important}
-
-.statsHero.statsGood,.subject.statsGood{--tone:var(--green)}
-.statsHero.statsBad,.subject.statsBad{--tone:var(--red)}
-.statsHero.statsNeutral,.subject.statsNeutral{--tone:var(--soft)}
-
-.statsHero.statsGood,.statsHero.statsBad,
-.subject.statsGood,.subject.statsBad{
-  --coverage:clamp(4%,var(--fill,0%),100%);
-  --fadeEnd:min(100%,calc(var(--coverage) + 16%));
+/* ===== COSMOS EDITION v3 — percentage crystal fill + navigation clearance ===== */
+/* Exact percentage controls how much of every percentage card carries its status color. */
+.statsHero.statsGood,.subject.statsGood,.statsHero.statsBad,.subject.statsBad{
   position:relative;
-  overflow:hidden;
   isolation:isolate;
-  background:
-    radial-gradient(circle at 18% 8%,rgba(255,255,255,.68),transparent 24%),
-    linear-gradient(108deg,
-      color-mix(in srgb,var(--tone) 32%,var(--card)) 0%,
-      color-mix(in srgb,var(--tone) 22%,var(--card)) calc(var(--coverage) - 10%),
-      color-mix(in srgb,var(--tone) 12%,var(--card)) var(--coverage),
-      color-mix(in srgb,var(--tone) 5%,var(--card)) var(--fadeEnd),
-      var(--card) min(100%,calc(var(--fadeEnd) + 1%))
-    ) !important;
-  border-color:color-mix(in srgb,var(--tone) 36%,var(--line)) !important;
+  overflow:hidden;
+  background:var(--card) !important;
 }
-
-/* Crystal/glass light reflection shared by percentage cards. */
-.statsHero.statsGood::before,.statsHero.statsBad::before,
-.subject.statsGood::before,.subject.statsBad::before{
+.statsHero.statsGood::before,.subject.statsGood::before,
+.statsHero.statsBad::before,.subject.statsBad::before{
   content:"";
   position:absolute;
   inset:0;
-  pointer-events:none;
   z-index:-1;
-  background:
-    linear-gradient(125deg,rgba(255,255,255,.34),transparent 24%,transparent 68%,rgba(255,255,255,.12)),
-    radial-gradient(circle at 84% 18%,rgba(255,255,255,.20),transparent 26%);
+  pointer-events:none;
+  background:linear-gradient(108deg,
+    color-mix(in srgb,var(--tone) 34%,var(--card)) 0,
+    color-mix(in srgb,var(--tone) 24%,var(--card)) var(--fill),
+    color-mix(in srgb,var(--tone) 9%,var(--card)) calc(var(--fill) + 12%),
+    var(--card) calc(var(--fill) + 26%),
+    var(--card) 100%);
 }
-
-/* Progress bars remain an exact percentage representation and match the card meaning. */
-.subject.statsGood .bar i{background:linear-gradient(90deg,color-mix(in srgb,var(--green) 82%,#fff),var(--green))!important;box-shadow:0 2px 10px color-mix(in srgb,var(--green) 32%,transparent)}
-.subject.statsBad .bar i{background:linear-gradient(90deg,color-mix(in srgb,var(--red) 82%,#fff),var(--red))!important;box-shadow:0 2px 10px color-mix(in srgb,var(--red) 30%,transparent)}
-
-/* Overall ring and hero use the same exact percentage meaning. */
-.statsHero.statsGood .ring{background:conic-gradient(var(--green) var(--p),var(--line) 0)!important}
-.statsHero.statsBad .ring{background:conic-gradient(var(--red) var(--p),var(--line) 0)!important}
-
-/* Present / Absent / Pending keep their existing meaning, with a subtle crystal shine. */
-.metric.presentMetric,.metric.absentMetric,.metric.pendingMetric{
-  position:relative;overflow:hidden;isolation:isolate;
+.statsHero.statsGood,.subject.statsGood{--tone:var(--green);border-color:color-mix(in srgb,var(--green) 36%,var(--line)) !important}
+.statsHero.statsBad,.subject.statsBad{--tone:var(--red);border-color:color-mix(in srgb,var(--red) 36%,var(--line)) !important}
+/* Crystal/glass light reflection, kept subtle so text stays readable. */
+.statsHero.statsGood::after,.subject.statsGood::after,
+.statsHero.statsBad::after,.subject.statsBad::after{
+  content:"";
+  position:absolute;
+  left:-18%;top:-55%;width:76%;height:105%;
+  transform:rotate(18deg);
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.32),transparent);
+  pointer-events:none;
+  opacity:.72;
+  z-index:-1;
 }
+[data-theme="dark"] .statsHero.statsGood::after,[data-theme="dark"] .subject.statsGood::after,
+[data-theme="dark"] .statsHero.statsBad::after,[data-theme="dark"] .subject.statsBad::after{opacity:.16}
+/* The percentage bar follows the same meaningful status tone. */
+.subject.statsGood .bar i{background:linear-gradient(90deg,color-mix(in srgb,var(--green) 72%,#fff),var(--green)) !important;box-shadow:0 0 14px color-mix(in srgb,var(--green) 34%,transparent)}
+.subject.statsBad .bar i{background:linear-gradient(90deg,color-mix(in srgb,var(--red) 72%,#fff),var(--red)) !important;box-shadow:0 0 14px color-mix(in srgb,var(--red) 34%,transparent)}
+/* Present / Absent / Pending keep their existing meanings, with a crystal finish only. */
+.metric.presentMetric,.metric.absentMetric,.metric.pendingMetric{position:relative;overflow:hidden}
 .metric.presentMetric::after,.metric.absentMetric::after,.metric.pendingMetric::after{
-  content:"";position:absolute;inset:0;pointer-events:none;z-index:-1;
-  background:linear-gradient(125deg,rgba(255,255,255,.50),transparent 38%,rgba(255,255,255,.10));
+  content:"";position:absolute;inset:0;pointer-events:none;
+  background:linear-gradient(120deg,rgba(255,255,255,.28),transparent 34%,rgba(255,255,255,.08) 62%,transparent);
 }
-.metric.presentMetric{box-shadow:inset 0 1px 0 rgba(255,255,255,.75),0 10px 24px color-mix(in srgb,var(--green) 12%,transparent)}
-.metric.absentMetric{box-shadow:inset 0 1px 0 rgba(255,255,255,.75),0 10px 24px color-mix(in srgb,var(--red) 12%,transparent)}
-.metric.pendingMetric{box-shadow:inset 0 1px 0 rgba(255,255,255,.75),0 10px 24px color-mix(in srgb,var(--yellow) 14%,transparent)}
+[data-theme="dark"] .metric.presentMetric::after,[data-theme="dark"] .metric.absentMetric::after,[data-theme="dark"] .metric.pendingMetric::after{background:linear-gradient(120deg,rgba(255,255,255,.08),transparent 34%,rgba(255,255,255,.03) 62%,transparent)}
+/* Extra clearance: scrolling content can never disappear behind the floating navigation. */
+.container{padding-bottom:190px !important}
+.nav{min-height:82px}
+@supports(padding:max(0px)){
+  .container{padding-bottom:max(190px,calc(132px + env(safe-area-inset-bottom))) !important}
+}
 
-[data-theme="dark"] .statsHero.statsGood,[data-theme="dark"] .subject.statsGood,
-[data-theme="dark"] .statsHero.statsBad,[data-theme="dark"] .subject.statsBad{
+
+/* ===== COSMOS EDITION v4 — atmospheric background + clean percentage fill ===== */
+/* Background is decorative only and stays behind every page for readability. */
+html,body,#app{background:transparent !important}
+body{position:relative;isolation:isolate;background:#dff3ff !important}
+body::before{content:"";position:fixed;inset:0;z-index:-2;pointer-events:none;
   background:
-    radial-gradient(circle at 18% 8%,rgba(255,255,255,.10),transparent 24%),
-    linear-gradient(108deg,
-      color-mix(in srgb,var(--tone) 34%,var(--card)) 0%,
-      color-mix(in srgb,var(--tone) 24%,var(--card)) calc(var(--coverage) - 10%),
-      color-mix(in srgb,var(--tone) 14%,var(--card)) var(--coverage),
-      color-mix(in srgb,var(--tone) 6%,var(--card)) var(--fadeEnd),
-      var(--card) min(100%,calc(var(--fadeEnd) + 1%))
-    ) !important;
-}
+    radial-gradient(ellipse at 12% 18%,rgba(255,255,255,.82) 0 7%,transparent 15%),
+    radial-gradient(ellipse at 23% 15%,rgba(255,255,255,.70) 0 6%,transparent 14%),
+    radial-gradient(ellipse at 74% 12%,rgba(255,255,255,.72) 0 8%,transparent 17%),
+    radial-gradient(ellipse at 86% 28%,rgba(255,255,255,.58) 0 6%,transparent 15%),
+    linear-gradient(180deg,#8fd3ff 0%,#bfe8ff 42%,#eaf8ff 100%);
+  opacity:.95}
+body::after{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;
+  background:radial-gradient(ellipse at 20% 10%,rgba(255,255,255,.32),transparent 25%),radial-gradient(ellipse at 80% 70%,rgba(255,255,255,.22),transparent 30%);
+  opacity:.7}
+.app{background:transparent !important}
+.header{background:color-mix(in srgb,var(--bg) 76%,transparent) !important}
+[data-theme="dark"] body{background:#060b1c !important}
+[data-theme="dark"] body::before{opacity:1;background:
+  radial-gradient(circle at 8% 12%,rgba(255,255,255,.72) 0 1px,transparent 2px),
+  radial-gradient(circle at 28% 22%,rgba(255,255,255,.58) 0 1px,transparent 2px),
+  radial-gradient(circle at 46% 8%,rgba(255,255,255,.7) 0 1px,transparent 2px),
+  radial-gradient(circle at 68% 18%,rgba(255,255,255,.55) 0 1.2px,transparent 2.2px),
+  radial-gradient(circle at 88% 9%,rgba(255,255,255,.65) 0 1px,transparent 2px),
+  radial-gradient(circle at 82% 35%,rgba(112,150,255,.22) 0 3%,transparent 9%),
+  radial-gradient(circle at 14% 72%,rgba(151,116,255,.18) 0 4%,transparent 11%),
+  radial-gradient(circle at 77% 76%,rgba(81,188,255,.12) 0 6%,transparent 15%),
+  linear-gradient(180deg,#070b1d 0%,#0b1330 52%,#101a3d 100%)}
+[data-theme="dark"] body::after{background:
+  radial-gradient(circle at 84% 22%,rgba(128,112,255,.22) 0 34px,rgba(96,83,210,.12) 35px,transparent 58px),
+  radial-gradient(circle at 18% 78%,rgba(70,160,255,.13) 0 24px,transparent 48px);opacity:.65}
 
-/* Keep floating navigation clear of page content and safe-area controls. */
-.nav{bottom:calc(10px + env(safe-area-inset-bottom))!important}
-@media(max-width:420px){.container{padding-bottom:178px!important}}
+/* Remove all crystal/gloss reflections. */
+.statsHero.statsGood::after,.subject.statsGood::after,.statsHero.statsBad::after,.subject.statsBad::after,
+.metric.presentMetric::after,.metric.absentMetric::after,.metric.pendingMetric::after{display:none !important}
+
+/* Exact percentage controls left-to-right meaningful colour coverage. */
+.statsHero.statsGood,.subject.statsGood,.statsHero.statsBad,.subject.statsBad{overflow:hidden;background:var(--card) !important}
+.statsHero.statsGood::before,.subject.statsGood::before,.statsHero.statsBad::before,.subject.statsBad::before{content:"";display:block;position:absolute;inset:0;z-index:-1;pointer-events:none;
+  background:linear-gradient(90deg,
+    color-mix(in srgb,var(--tone) 36%,var(--card)) 0%,
+    color-mix(in srgb,var(--tone) 30%,var(--card)) var(--fill),
+    color-mix(in srgb,var(--tone) 12%,var(--card)) calc(var(--fill) + 12%),
+    var(--card) calc(var(--fill) + 26%),
+    var(--card) 100%) !important}
+[data-theme="dark"] .statsHero.statsGood::before,[data-theme="dark"] .subject.statsGood::before,[data-theme="dark"] .statsHero.statsBad::before,[data-theme="dark"] .subject.statsBad::before{background:linear-gradient(90deg,
+    color-mix(in srgb,var(--tone) 30%,var(--card)) 0%,
+    color-mix(in srgb,var(--tone) 24%,var(--card)) var(--fill),
+    color-mix(in srgb,var(--tone) 10%,var(--card)) calc(var(--fill) + 12%),
+    var(--card) calc(var(--fill) + 26%),var(--card) 100%) !important}
 
 </style>
 </head>
@@ -488,8 +518,8 @@ function combinedEveningRows(st,filter="all"){
     });
 }
 function attendanceAdvice(r){if(r.held===0)return "No held classes yet";let req=Number(state.settings.required)||75, q=req/100;if(q>=1){return r.attended===r.held?"✓ 100% attendance — do not miss any class":"Need to attend all future classes; 100% can only be reached if no class was missed"}if(r.pct>=req){let canMiss=Math.floor(r.attended/q-r.held+1e-9);if(canMiss<0)canMiss=0;return canMiss===0?"✓ Attendance is enough, but you cannot miss the next class":"✓ Attendance is enough — you can miss "+canMiss+" more class"+(canMiss===1?"":"es")+" and still stay at or above "+req+"%"}let needed=Math.ceil((q*r.held-r.attended)/(1-q));if(needed<0)needed=0;return "⚠ Need to attend the next "+needed+" class"+(needed===1?"":"es")+" consecutively to reach "+req+"%"}
-function statsCard(r,label=""){let good=r.pct!==null&&r.pct>=state.settings.required;let bad=r.pct!==null&&r.pct<state.settings.required;let tone=good?"statsGood":bad?"statsBad":"statsNeutral";let cancelled=Number(r.notHeld||0);let advice=attendanceAdvice(r);let adviceTone=good?"goodAdvice":bad?"badAdvice":"neutralAdvice";return `<div class="card subject ${tone}" style="--fill:${r.pct===null?0:Math.max(0,Math.min(100,r.pct))}%"><div class="subjectHead"><div class="subjectName">${esc(r.subject)}${label}</div><div class="pct">${r.pct===null?"—":r.pct.toFixed(1)+"%"}</div></div><div class="bar"><i style="width:${r.pct||0}%"></i></div><div class="subjectMeta"><span class="metaPresent">Present ${r.attended}</span><span class="metaAbsent">Absent ${r.absent}</span><span class="metaHeld">Held ${r.held}</span><span class="metaCancelled">Cancelled ${cancelled}</span></div><div class="attendanceAdvice ${adviceTone}" style="font-size:11px;margin-top:10px">${advice}</div></div>`}
-function statsTab(){let filter=state.statsFilter,st=compute(filter),pct=st.percent===null?0:Math.min(100,st.percent),months=[];let c=new Date(START_DATE.getFullYear(),START_DATE.getMonth(),1),e=new Date(today().getFullYear(),today().getMonth(),1);while(c<=e){months.push(key(c).slice(0,7));c=new Date(c.getFullYear(),c.getMonth()+1,1)}let heroTone=st.percent===null?"statsNeutral":st.percent>=state.settings.required?"statsGood":"statsBad";let h=`<div class="tabs"><button class="filter ${filter==="all"?"active":""}" data-act="filter" data-v="all">Overall</button>${months.slice().reverse().map(m=>`<button class="filter ${filter===m?"active":""}" data-act="filter" data-v="${m}">${parseKey(m+"-01").toLocaleDateString("en-GB",{month:"short",year:"2-digit"})}</button>`).join("")}</div><div class="card statsHero ${heroTone}" style="--fill:${pct}%"><div class="ring" style="--p:${pct}%"><div class="ringIn">${st.percent===null?"—":st.percent.toFixed(1)+"%"}</div></div><b>Overall attendance</b><div class="small">${st.attended} present of ${st.held} held classes</div></div><div class="grid4"><div class="card metric presentMetric"><b>${st.attended}</b><span>Present</span></div><div class="card metric absentMetric"><b>${st.absent}</b><span>Absent</span></div><div class="card metric pendingMetric"><b>${st.pending}</b><span>Pending</span></div></div><div class="sectionTitle">📚 Subject attendance</div><div class="statsLegend"><span class="legendGood">● At or above required attendance</span><span class="legendBad">● Below required attendance</span></div>`;
+function statsCard(r,label=""){let good=r.pct!==null&&r.pct>=state.settings.required;let bad=r.pct!==null&&r.pct<state.settings.required;let tone=good?"statsGood":bad?"statsBad":"statsNeutral";let cancelled=Number(r.notHeld||0);let advice=attendanceAdvice(r);let adviceTone=good?"goodAdvice":bad?"badAdvice":"neutralAdvice";return `<div class="card subject ${tone}" style="--fill:${Math.max(0,Math.min(100,r.pct||0))}%"><div class="subjectHead"><div class="subjectName">${esc(r.subject)}${label}</div><div class="pct">${r.pct===null?"—":r.pct.toFixed(1)+"%"}</div></div><div class="bar"><i style="width:${r.pct||0}%"></i></div><div class="subjectMeta"><span class="metaPresent">Present ${r.attended}</span><span class="metaAbsent">Absent ${r.absent}</span><span class="metaHeld">Held ${r.held}</span><span class="metaCancelled">Cancelled ${cancelled}</span></div><div class="attendanceAdvice ${adviceTone}" style="font-size:11px;margin-top:10px">${advice}</div></div>`}
+function statsTab(){let filter=state.statsFilter,st=compute(filter),pct=st.percent===null?0:Math.min(100,st.percent),months=[];let c=new Date(START_DATE.getFullYear(),START_DATE.getMonth(),1),e=new Date(today().getFullYear(),today().getMonth(),1);while(c<=e){months.push(key(c).slice(0,7));c=new Date(c.getFullYear(),c.getMonth()+1,1)}let h=`<div class="tabs"><button class="filter ${filter==="all"?"active":""}" data-act="filter" data-v="all">Overall</button>${months.slice().reverse().map(m=>`<button class="filter ${filter===m?"active":""}" data-act="filter" data-v="${m}">${parseKey(m+"-01").toLocaleDateString("en-GB",{month:"short",year:"2-digit"})}</button>`).join("")}</div><div class="card statsHero ${st.percent!==null&&st.percent>=state.settings.required?"statsGood":"statsBad"}" style="--fill:${pct}%"><div class="ring" style="--p:${pct}%"><div class="ringIn">${st.percent===null?"—":st.percent.toFixed(1)+"%"}</div></div><b>Overall attendance</b><div class="small">${st.attended} present of ${st.held} held classes</div></div><div class="grid4"><div class="card metric presentMetric"><b>${st.attended}</b><span>Present</span></div><div class="card metric absentMetric"><b>${st.absent}</b><span>Absent</span></div><div class="card metric pendingMetric"><b>${st.pending}</b><span>Pending</span></div></div><div class="sectionTitle">📚 Subject attendance</div><div class="statsLegend"><span class="legendGood">● At or above required attendance</span><span class="legendBad">● Below required attendance</span></div>`;
 // Individual subjects only — combined rows are deliberately kept out of this section.
 // Highest attendance percentage appears first. Rows without held classes are kept at the bottom.
 const byAttendanceDesc=(a,b)=>{const ap=a.pct===null?-1:a.pct,bp=b.pct===null?-1:b.pct;return bp-ap||a.subject.localeCompare(b.subject)};

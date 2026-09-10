@@ -80,6 +80,49 @@
 .activationBtn{width:100%;margin-top:14px;padding:13px 16px;border:0;border-radius:12px;background:var(--primary);color:#fff;font-size:16px;font-weight:800}
 .activationError{min-height:20px;margin-top:10px;color:#d84b4b;font-size:14px;font-weight:700}
 
+
+/* ===== Enhanced 3D visual design (presentation only) ===== */
+.card{
+  box-shadow: 0 8px 0 color-mix(in srgb,var(--line) 72%,transparent), 0 16px 28px rgba(0,0,0,.12);
+  transform: translateZ(0);
+}
+.btn,.saveAttendance,.holiday,.filter,.iconbtn,.nav button,.status,.calDay{
+  transition: transform .14s ease, box-shadow .14s ease, filter .14s ease, background .14s ease;
+}
+.btn,.saveAttendance,.holiday{
+  box-shadow: 0 5px 0 color-mix(in srgb,var(--primary) 68%,#000 32%), 0 11px 18px color-mix(in srgb,var(--primary) 18%,transparent);
+}
+.btn.soft{
+  box-shadow: 0 5px 0 color-mix(in srgb,var(--primary) 22%,var(--line)), 0 10px 18px rgba(0,0,0,.08);
+}
+.btn.outline{
+  box-shadow: 0 5px 0 color-mix(in srgb,var(--line) 88%,transparent), 0 10px 18px rgba(0,0,0,.08);
+}
+.btn:active,.saveAttendance:active,.holiday:active,.filter:active,.iconbtn:active,.nav button:active{
+  transform: translateY(4px);
+  box-shadow: 0 1px 0 color-mix(in srgb,var(--line) 75%,transparent), 0 4px 8px rgba(0,0,0,.10);
+}
+.status{
+  background:var(--card);
+  box-shadow: 0 3px 0 color-mix(in srgb,var(--line) 92%,transparent), inset 0 1px 0 rgba(255,255,255,.16);
+}
+.status:active{transform:translateY(2px);box-shadow:0 1px 0 color-mix(in srgb,var(--line) 85%,transparent)}
+.status.green.active{
+  box-shadow: 0 5px 0 color-mix(in srgb,var(--green) 60%,#000 40%), 0 10px 18px color-mix(in srgb,var(--green) 16%,transparent), inset 0 1px 0 rgba(255,255,255,.28);
+}
+.status.red.active{
+  box-shadow: 0 5px 0 color-mix(in srgb,var(--red) 60%,#000 40%), 0 10px 18px color-mix(in srgb,var(--red) 16%,transparent), inset 0 1px 0 rgba(255,255,255,.28);
+}
+.status.gray.active{
+  box-shadow: 0 5px 0 color-mix(in srgb,#4f5a55 68%,#000 32%), 0 10px 18px rgba(0,0,0,.12), inset 0 1px 0 rgba(255,255,255,.22);
+}
+.session{
+  box-shadow: 0 5px 0 color-mix(in srgb,var(--line) 76%,transparent), 0 12px 22px rgba(0,0,0,.08);
+}
+.metric,.subject,.progressCard,.statsHero,.formCard,.calendar,.noteBox,.modalBox{
+  box-shadow: 0 7px 0 color-mix(in srgb,var(--line) 72%,transparent), 0 15px 28px rgba(0,0,0,.10);
+}
+
 </style>
 </head>
 <body><div id="app"></div>

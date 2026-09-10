@@ -14,7 +14,7 @@
 
 /* Clean in-app alert popup */
 .app-alert-overlay{
-  position:fixed; inset:0; z-index:99999;
+  position:fixed; inset:0; z-index:300000;
   display:none; align-items:center; justify-content:center;
   background:rgba(0,0,0,.55); padding:20px;
 }
@@ -259,17 +259,13 @@ document.addEventListener("click",async e=>{let el=e.target.closest("[data-act]"
 function checkDay(){let cur=key(today());if(state.viewDate<key(START_DATE))state.viewDate=key(START_DATE);render()}document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")checkDay()});window.addEventListener("focus",checkDay);setInterval(checkDay,60000);
 const ACTIVATION_KEY="attendance-tracker-activated-v1";
 const ACTIVATION_CODE="Med@2026#Sharad!K7p9";
-function hasExistingAppData(){
-  if(localStorage.getItem(KEY))return true;
-  return LEGACY_KEYS.some(k=>!!localStorage.getItem(k));
-}
 function activateGate(){
   const overlay=document.getElementById("activationOverlay");
   const input=document.getElementById("activationCode");
   const btn=document.getElementById("activationBtn");
   const error=document.getElementById("activationError");
-  // Existing installations are grandfathered in and never asked for the new code.
-  if(hasExistingAppData())localStorage.setItem(ACTIVATION_KEY,"1");
+  // Only genuinely existing users with meaningful saved attendance/settings are grandfathered in.
+  if(HAD_MEANINGFUL_APP_DATA_BEFORE_ACTIVATION)localStorage.setItem(ACTIVATION_KEY,"1");
   if(localStorage.getItem(ACTIVATION_KEY)==="1")return;
   overlay.classList.add("show");
   const tryActivate=()=>{
@@ -286,7 +282,21 @@ function activateGate(){
   input.addEventListener("keydown",e=>{if(e.key==="Enter")tryActivate()});
   setTimeout(()=>input.focus(),50);
 }
-load();applyTheme();watchSystemTheme();render();activateGate();if("serviceWorker" in navigator)window.addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));
+// Capture existing storage before load() can initialize a fresh installation.
+function hasMeaningfulStoredData(){
+  try{
+    const candidates=[KEY,...LEGACY_KEYS];
+    for(const k of candidates){
+      const raw=localStorage.getItem(k); if(!raw) continue;
+      const d=JSON.parse(raw);
+      if(Object.keys(d.status||{}).length || Object.keys(d.records||{}).length || Object.keys(d.extraClasses||{}).length || Object.keys(d.notes||{}).length || Object.keys(d.holidays||{}).length) return true;
+      if(d.settings && (d.settings.rollLocked || d.settings.rollNumber || d.settings.name && d.settings.name!=="Sharad Sourav")) return true;
+    }
+  }catch(e){}
+  return false;
+}
+const HAD_MEANINGFUL_APP_DATA_BEFORE_ACTIVATION = hasMeaningfulStoredData();
+load();applyTheme();watchSystemTheme();render();activateGate();if("serviceWorker" in navigator)window.addEventListener("load",()=>navigator.serviceWorker.register("sw.js?v=17-activation-fix").then(r=>r.update?.()).catch(()=>{}));
 
 // Robust Manage Schedule controls (direct handlers; independent of delegated clicks)
 function openManageSchedule(){
@@ -343,10 +353,12 @@ function showAppAlert(message, title){
   msgEl.textContent=message || '';
   overlay.classList.add('show');
 }
+function closeAppAlert(){
+  const o=document.getElementById('appAlertOverlay');
+  if(o)o.classList.remove('show');
+}
 document.addEventListener('click', function(e){
-  if(e.target && (e.target.id==='appAlertOk' || e.target.id==='appAlertOverlay')){
-    document.getElementById('appAlertOverlay')?.classList.remove('show');
-  }
+  if(e.target && (e.target.id==='appAlertOk' || e.target.id==='appAlertOverlay')) closeAppAlert();
 });
 
 
@@ -391,7 +403,7 @@ function appConfirm(message,title="Confirmation"){
   <div class="app-alert-box">
     <div id="appAlertTitle" class="app-alert-title">⚠️ Save Roll Number First</div>
     <p id="appAlertMessage" class="app-alert-message">Please save your roll number in Settings before marking or saving attendance.</p>
-    <div class="app-alert-actions"><button id="appAlertOk" class="app-alert-ok" type="button">OK</button></div>
+    <div class="app-alert-actions"><button id="appAlertOk" class="app-alert-ok" type="button" onclick="closeAppAlert()">OK</button></div>
   </div>
 </div>
 

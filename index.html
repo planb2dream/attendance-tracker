@@ -165,8 +165,9 @@ function combinedEveningRows(st,filter="all"){
     const dk=String(recordKey).slice(0,10);
     if(filter!=="all" && dk.slice(0,7)!==filter)return;
     const status=state.status[recordKey];
-    // A combination represents classes that actually happened. Ignore pending and Not Held.
-    if(status!==STATUS.ATTENDED && status!==STATUS.ABSENT && status!==STATUS.LEAVE)return;
+    // Ignore pending classes. Cancelled (Not Held) classes are counted separately
+    // for information, but do not affect the held-class attendance calculation.
+    if(status!==STATUS.ATTENDED && status!==STATUS.ABSENT && status!==STATUS.LEAVE && status!==STATUS.NOT_HELD)return;
     const subject=String(rec&&rec.subject||"").trim();
     const start=String(rec&&rec.start||"");
     if(!subject || /\(Clinical\)$/.test(subject))return;
@@ -175,13 +176,14 @@ function combinedEveningRows(st,filter="all"){
     const period=start>="15:00"?"after":"before";
     let g=groups.get(base);
     if(!g){
-      g={before:{attended:0,absent:0,leave:0},after:{attended:0,absent:0,leave:0}};
+      g={before:{attended:0,absent:0,leave:0,notHeld:0},after:{attended:0,absent:0,leave:0,notHeld:0}};
       groups.set(base,g);
     }
     const bucket=g[period];
     if(status===STATUS.ATTENDED)bucket.attended++;
     else if(status===STATUS.ABSENT)bucket.absent++;
     else if(status===STATUS.LEAVE)bucket.leave++;
+    else if(status===STATUS.NOT_HELD)bucket.notHeld++;
   });
 
   return [...groups.entries()]
@@ -195,17 +197,18 @@ function combinedEveningRows(st,filter="all"){
       const attended=g.before.attended+g.after.attended;
       const absent=g.before.absent+g.after.absent;
       const leave=g.before.leave+g.after.leave;
+      const notHeld=g.before.notHeld+g.after.notHeld;
       const held=attended+absent+leave;
       return {
         subject:base+" — Morning + Evening",
-        attended,absent,leave,held,
+        attended,absent,leave,notHeld,held,
         pct:held?attended/held*100:null,
         combined:true
       };
     });
 }
 function attendanceAdvice(r){if(r.held===0)return "No held classes yet";let req=Number(state.settings.required)||75, q=req/100;if(q>=1){return r.attended===r.held?"✓ 100% attendance — do not miss any class":"Need to attend all future classes; 100% can only be reached if no class was missed"}if(r.pct>=req){let canMiss=Math.floor(r.attended/q-r.held+1e-9);if(canMiss<0)canMiss=0;return canMiss===0?"✓ Attendance is enough, but you cannot miss the next class":"✓ Attendance is enough — you can miss "+canMiss+" more class"+(canMiss===1?"":"es")+" and still stay at or above "+req+"%"}let needed=Math.ceil((q*r.held-r.attended)/(1-q));if(needed<0)needed=0;return "⚠ Need to attend the next "+needed+" class"+(needed===1?"":"es")+" consecutively to reach "+req+"%"}
-function statsCard(r,label=""){let cls=r.pct===null?"":r.pct>=state.settings.required?"safe":r.pct>=state.settings.required-5?"warning":"danger";return `<div class="card subject"><div class="subjectHead"><div class="subjectName">${esc(r.subject)}${label}</div><div class="pct ${cls}">${r.pct===null?"—":r.pct.toFixed(1)+"%"}</div></div><div class="bar"><i style="width:${r.pct||0}%"></i></div><div class="subjectMeta"><span>Present ${r.attended} · Absent ${r.absent}</span><span>Held ${r.held}</span></div><div style="font-size:11px;margin-top:8px">${attendanceAdvice(r)}</div></div>`}
+function statsCard(r,label=""){let cls=r.pct===null?"":r.pct>=state.settings.required?"safe":r.pct>=state.settings.required-5?"warning":"danger";let cancelled=Number(r.notHeld||0);return `<div class="card subject"><div class="subjectHead"><div class="subjectName">${esc(r.subject)}${label}</div><div class="pct ${cls}">${r.pct===null?"—":r.pct.toFixed(1)+"%"}</div></div><div class="bar"><i style="width:${r.pct||0}%"></i></div><div class="subjectMeta"><span>Present ${r.attended} · Absent ${r.absent}</span><span>Held ${r.held} · Cancelled ${cancelled}</span></div><div style="font-size:11px;margin-top:8px">${attendanceAdvice(r)}</div></div>`}
 function statsTab(){let filter=state.statsFilter,st=compute(filter),pct=st.percent===null?0:Math.min(100,st.percent),months=[];let c=new Date(START_DATE.getFullYear(),START_DATE.getMonth(),1),e=new Date(today().getFullYear(),today().getMonth(),1);while(c<=e){months.push(key(c).slice(0,7));c=new Date(c.getFullYear(),c.getMonth()+1,1)}let h=`<div class="tabs"><button class="filter ${filter==="all"?"active":""}" data-act="filter" data-v="all">Overall</button>${months.slice().reverse().map(m=>`<button class="filter ${filter===m?"active":""}" data-act="filter" data-v="${m}">${parseKey(m+"-01").toLocaleDateString("en-GB",{month:"short",year:"2-digit"})}</button>`).join("")}</div><div class="card statsHero"><div class="ring" style="--p:${pct}%"><div class="ringIn">${st.percent===null?"—":st.percent.toFixed(1)+"%"}</div></div><b>Overall attendance</b><div class="small">${st.attended} present of ${st.held} held classes</div></div><div class="grid4"><div class="card metric"><b>${st.attended}</b><span>Present</span></div><div class="card metric"><b>${st.absent}</b><span>Absent</span></div><div class="card metric"><b>${st.pending}</b><span>Pending</span></div></div><div class="sectionTitle">📚 Subject attendance</div>`;
 // Individual subjects only — combined rows are deliberately kept out of this section.
 st.rows.forEach(r=>h+=statsCard(r));

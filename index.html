@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,viewport-fit=cover">
 <title>Attendance Tracker</title>
 <meta name="theme-color" content="#2A5C54">
 <link rel="manifest" href="manifest.json">
@@ -377,6 +377,13 @@ body::after{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;
     color-mix(in srgb,var(--tone) 10%,var(--card)) calc(var(--fill) + 12%),
     var(--card) calc(var(--fill) + 26%),var(--card) 100%) !important}
 
+
+/* ===== Adaptive bottom system-bar clearance fix ===== */
+:root{--nav-clearance:112px;--system-bottom:env(safe-area-inset-bottom,0px)}
+html,body,#app,.app{min-height:100dvh}
+.container{padding-bottom:calc(var(--nav-clearance) + var(--system-bottom) + 42px)!important}
+.nav{bottom:calc(10px + var(--system-bottom))!important}
+@supports (height:100dvh){.app{min-height:100dvh}}
 </style>
 </head>
 <body><div id="app"></div>
@@ -595,7 +602,7 @@ function hasMeaningfulStoredData(){
   return false;
 }
 const HAD_MEANINGFUL_APP_DATA_BEFORE_ACTIVATION = hasMeaningfulStoredData();
-load();applyTheme();watchSystemTheme();render();if(document.readyState==="loading"){document.addEventListener("DOMContentLoaded",activateGate,{once:true});}else{activateGate();}if("serviceWorker" in navigator)window.addEventListener("load",()=>navigator.serviceWorker.register("sw.js?v=19-cosmos-edition").then(r=>r.update?.()).catch(()=>{}));
+load();applyTheme();watchSystemTheme();render();if(document.readyState==="loading"){document.addEventListener("DOMContentLoaded",activateGate,{once:true});}else{activateGate();}if("serviceWorker" in navigator)window.addEventListener("load",()=>navigator.serviceWorker.register("sw.js?v=20-cosmos-safe-bottom").then(r=>r.update?.()).catch(()=>{}));
 
 // Robust Manage Schedule controls (direct handlers; independent of delegated clicks)
 function openManageSchedule(){

@@ -103,10 +103,14 @@
   box-shadow: 0 1px 0 color-mix(in srgb,var(--line) 75%,transparent), 0 4px 8px rgba(0,0,0,.10);
 }
 .status{
+  /* Unmarked attendance buttons stay flat/normal like the original design. */
   background:var(--card);
-  box-shadow: 0 3px 0 color-mix(in srgb,var(--line) 92%,transparent), inset 0 1px 0 rgba(255,255,255,.16);
+  box-shadow:none;
 }
-.status:active{transform:translateY(2px);box-shadow:0 1px 0 color-mix(in srgb,var(--line) 85%,transparent)}
+.status:active{transform:none;box-shadow:none}
+.status.active{
+  transform:translateY(-1px);
+}
 .status.green.active{
   box-shadow: 0 5px 0 color-mix(in srgb,var(--green) 60%,#000 40%), 0 10px 18px color-mix(in srgb,var(--green) 16%,transparent), inset 0 1px 0 rgba(255,255,255,.28);
 }
@@ -267,9 +271,11 @@ function attendanceAdvice(r){if(r.held===0)return "No held classes yet";let req=
 function statsCard(r,label=""){let cls=r.pct===null?"":r.pct>=state.settings.required?"safe":r.pct>=state.settings.required-5?"warning":"danger";let cancelled=Number(r.notHeld||0);return `<div class="card subject"><div class="subjectHead"><div class="subjectName">${esc(r.subject)}${label}</div><div class="pct ${cls}">${r.pct===null?"—":r.pct.toFixed(1)+"%"}</div></div><div class="bar"><i style="width:${r.pct||0}%"></i></div><div class="subjectMeta"><span>Present ${r.attended} · Absent ${r.absent}</span><span>Held ${r.held} · Cancelled ${cancelled}</span></div><div style="font-size:11px;margin-top:8px">${attendanceAdvice(r)}</div></div>`}
 function statsTab(){let filter=state.statsFilter,st=compute(filter),pct=st.percent===null?0:Math.min(100,st.percent),months=[];let c=new Date(START_DATE.getFullYear(),START_DATE.getMonth(),1),e=new Date(today().getFullYear(),today().getMonth(),1);while(c<=e){months.push(key(c).slice(0,7));c=new Date(c.getFullYear(),c.getMonth()+1,1)}let h=`<div class="tabs"><button class="filter ${filter==="all"?"active":""}" data-act="filter" data-v="all">Overall</button>${months.slice().reverse().map(m=>`<button class="filter ${filter===m?"active":""}" data-act="filter" data-v="${m}">${parseKey(m+"-01").toLocaleDateString("en-GB",{month:"short",year:"2-digit"})}</button>`).join("")}</div><div class="card statsHero"><div class="ring" style="--p:${pct}%"><div class="ringIn">${st.percent===null?"—":st.percent.toFixed(1)+"%"}</div></div><b>Overall attendance</b><div class="small">${st.attended} present of ${st.held} held classes</div></div><div class="grid4"><div class="card metric"><b>${st.attended}</b><span>Present</span></div><div class="card metric"><b>${st.absent}</b><span>Absent</span></div><div class="card metric"><b>${st.pending}</b><span>Pending</span></div></div><div class="sectionTitle">📚 Subject attendance</div>`;
 // Individual subjects only — combined rows are deliberately kept out of this section.
-st.rows.forEach(r=>h+=statsCard(r));
-// Flexible combinations from actually saved classes get their own separate section.
-let combined=combinedEveningRows(st,filter);
+// Highest attendance percentage appears first. Rows without held classes are kept at the bottom.
+const byAttendanceDesc=(a,b)=>{const ap=a.pct===null?-1:a.pct,bp=b.pct===null?-1:b.pct;return bp-ap||a.subject.localeCompare(b.subject)};
+st.rows.slice().sort(byAttendanceDesc).forEach(r=>h+=statsCard(r));
+// Flexible combinations from actually saved classes get their own separate section and are sorted independently.
+let combined=combinedEveningRows(st,filter).slice().sort(byAttendanceDesc);
 if(combined.length){h+=`<div class="sectionTitle">🔗 Combined Morning & Evening Attendance</div><div class="small" style="margin:-4px 0 10px">Shown automatically when the same subject has actually been held both in the morning and evening.</div>`;combined.forEach(r=>h+=statsCard(r," 🔗"))}
 return h}
 function calendarTab(){let m=parseKey(state.calendarMonth),y=m.getFullYear(),mo=m.getMonth(),first=new Date(y,mo,1),start=first.getDay(),days=new Date(y,mo+1,0).getDate();let h=`<div class="card calendar"><div class="row" style="justify-content:space-between;margin-bottom:10px"><button class="btn outline" data-act="calPrev">‹</button><b>${monthFmt(first)}</b><button class="btn outline" data-act="calNext">›</button></div><div class="calGrid">${["Sun","Mon","Tue","Wed","Thu","Fri","Sat"].map(x=>`<div class="calDow">${x}</div>`).join("")}${Array.from({length:start},()=>`<div class="calDay empty"></div>`).join("")}`;for(let n=1;n<=days;n++){let d=new Date(y,mo,n),dk=key(d),ss=sessionsFor(d),dot="";if(state.holidays[dk])dot="holiday";else if(ss.length){let vals=ss.map((_,i)=>statusOf(dk,i));if(vals.some(v=>v===STATUS.ABSENT||v===STATUS.LEAVE))dot=vals.some(v=>v===STATUS.ATTENDED)?"mix":"bad";else if(vals.some(v=>v===STATUS.ATTENDED))dot="good"}h+=`<button class="calDay ${dk===key(today())?"today":""}" data-act="calPick" data-v="${dk}">${n}${dot?`<i class="dot ${dot}"></i>`:""}</button>`}h+=`</div></div><div class="banner info">🟢 Present · 🔴 Absent · 🟡 Mixed · 🟣 Holiday. Tap a date to open its log.</div>`;return h}

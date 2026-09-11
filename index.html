@@ -611,6 +611,74 @@ body[data-edition="cosmos"],body[data-edition="orbit"],body[data-edition="observ
 body[data-edition="nebula"],body[data-edition="event-horizon"]{color-scheme:dark!important;}
 /* ===== END V17 CONTRAST SYSTEM ===== */
 
+
+/* ===== V18 EDITION-BY-EDITION CONTRAST & CONTROL SYSTEM =====
+   This layer is intentionally last so older theme experiments cannot override it. */
+body[data-edition]{
+  --neutralControlBg:color-mix(in srgb,var(--surfaceText) 8%,var(--surface));
+  --neutralControlBorder:color-mix(in srgb,var(--surfaceText) 16%,transparent);
+  --statsBase:var(--surface); --statsText:var(--surfaceText); --statsSoft:var(--surfaceSoft);
+}
+/* Each edition gets an explicit readable page/surface pair. */
+body[data-edition="cosmos"]{--pageText:#102536;--pageSoft:#5b7180;--surface:#ffffff;--surfaceText:#102536;--surfaceSoft:#5b7180;--navBg:#ffffff;--navText:#536a79;--inputBg:#e9f8ff;--inputText:#102536;--inputPlaceholder:#60798a;}
+body[data-edition="nebula"]{--pageText:#f8f5ff;--pageSoft:#ddd3ec;--surface:#29203d;--surfaceText:#fbf8ff;--surfaceSoft:#ddd3ec;--navBg:#21182f;--navText:#ddd3ec;--inputBg:#3a2d54;--inputText:#ffffff;--inputPlaceholder:#d7cde5;--statsBase:#29203d;--statsText:#fbf8ff;--statsSoft:#ddd3ec;}
+body[data-edition="orbit"]{--pageText:#10274a;--pageSoft:#5d7191;--surface:#ffffff;--surfaceText:#10274a;--surfaceSoft:#5d7191;--navBg:#f6f9ff;--navText:#5d7191;--inputBg:#edf4ff;--inputText:#10274a;--inputPlaceholder:#6c7f9d;}
+body[data-edition="observatory"]{--pageText:#183348;--pageSoft:#607488;--surface:#ffffff;--surfaceText:#183348;--surfaceSoft:#607488;--navBg:#f4f7fa;--navText:#607488;--inputBg:#edf3f8;--inputText:#183348;--inputPlaceholder:#6b7d8d;}
+body[data-edition="supernova"]{--pageText:#4a2418;--pageSoft:#875d52;--surface:#fffaf6;--surfaceText:#4a2418;--surfaceSoft:#875d52;--navBg:#fff7f0;--navText:#875d52;--inputBg:#fff0e4;--inputText:#4a2418;--inputPlaceholder:#95695c;}
+body[data-edition="lunar"]{--pageText:#1d2b40;--pageSoft:#62718a;--surface:#ffffff;--surfaceText:#1d2b40;--surfaceSoft:#62718a;--navBg:#f8faff;--navText:#62718a;--inputBg:#edf2f9;--inputText:#1d2b40;--inputPlaceholder:#74839a;}
+body[data-edition="voyager"]{--pageText:#103b42;--pageSoft:#53777d;--surface:#fbffff;--surfaceText:#103b42;--surfaceSoft:#53777d;--navBg:#edfafa;--navText:#53777d;--inputBg:#e7f8f7;--inputText:#103b42;--inputPlaceholder:#638389;}
+body[data-edition="event-horizon"]{--pageText:#faf6ff;--pageSoft:#d1c6de;--surface:#1a1625;--surfaceText:#faf6ff;--surfaceSoft:#d1c6de;--navBg:#120f1a;--navText:#d1c6de;--inputBg:#30283e;--inputText:#ffffff;--inputPlaceholder:#d1c6de;--statsBase:#1a1625;--statsText:#faf6ff;--statsSoft:#d1c6de;}
+
+/* Immediate background decides text color. */
+body[data-edition],body[data-edition] .app,body[data-edition] .container{color:var(--pageText)!important;}
+body[data-edition] .header,body[data-edition] .brand,body[data-edition] .datebar,body[data-edition] .datecenter,body[data-edition] .container>.sectionTitle{color:var(--pageText)!important;}
+body[data-edition] .sub,body[data-edition] .datecenter span{color:var(--pageSoft)!important;}
+body[data-edition] .card,body[data-edition] .formCard,body[data-edition] .noteBox,body[data-edition] .progressCard,body[data-edition] .session,body[data-edition] .calendar,body[data-edition] .modalBox{background:var(--surface)!important;color:var(--surfaceText)!important;}
+body[data-edition] .card b,body[data-edition] .card strong,body[data-edition] .card h1,body[data-edition] .card h2,body[data-edition] .card h3,body[data-edition] .sessionName,body[data-edition] .label{color:var(--surfaceText)!important;}
+body[data-edition] .small,body[data-edition] .sessionTime,body[data-edition] .progressText,body[data-edition] .locktag,body[data-edition] .subjectMeta,body[data-edition] .madeby{color:var(--surfaceSoft)!important;}
+
+/* Percentage cards: percentage fill stays, but uses a controlled readable tint in every edition. */
+body[data-edition] .statsHero.statsGood,body[data-edition] .subject.statsGood{--tone:#238454!important;background:linear-gradient(90deg,color-mix(in srgb,var(--tone) 30%,var(--statsBase)) 0%,color-mix(in srgb,var(--tone) 20%,var(--statsBase)) var(--fill),var(--statsBase) var(--fill),var(--statsBase) 100%)!important;color:var(--statsText)!important;}
+body[data-edition] .statsHero.statsBad,body[data-edition] .subject.statsBad{--tone:#bd4747!important;background:linear-gradient(90deg,color-mix(in srgb,var(--tone) 30%,var(--statsBase)) 0%,color-mix(in srgb,var(--tone) 20%,var(--statsBase)) var(--fill),var(--statsBase) var(--fill),var(--statsBase) 100%)!important;color:var(--statsText)!important;}
+body[data-edition] .statsHero .ringIn{background:var(--statsBase)!important;color:var(--statsText)!important;}
+body[data-edition] .statsHero b,body[data-edition] .statsHero .small,body[data-edition] .subject .subjectName,body[data-edition] .subject .pct{color:var(--statsText)!important;}
+body[data-edition] .statsHero .small,body[data-edition] .subject .subjectMeta,body[data-edition] .attendanceAdvice{color:var(--statsSoft)!important;}
+body[data-edition] .subject.statsGood .pct{color:#167044!important;}body[data-edition] .subject.statsBad .pct{color:#a63b3b!important;}
+body[data-edition="nebula"] .subject.statsGood .pct,body[data-edition="event-horizon"] .subject.statsGood .pct{color:#8ce0ae!important;}
+body[data-edition="nebula"] .subject.statsBad .pct,body[data-edition="event-horizon"] .subject.statsBad .pct{color:#ff9b9b!important;}
+
+/* Stats summary cards are always fully filled with meaningful light status colors. */
+body[data-edition] .grid4 .metric.presentMetric{background:#dcf7e7!important;color:#126b3b!important;border-color:#9fd9b7!important;}
+body[data-edition] .grid4 .metric.absentMetric{background:#ffe1e1!important;color:#a52323!important;border-color:#efb1b1!important;}
+body[data-edition] .grid4 .metric.pendingMetric{background:#fff1bd!important;color:#8a6100!important;border-color:#e6c76a!important;}
+body[data-edition] .grid4 .metric.totalMetric{background:#ddebff!important;color:#174f9a!important;border-color:#a9c9f5!important;}
+body[data-edition] .grid4 .metric.presentMetric b,body[data-edition] .grid4 .metric.presentMetric span{color:#126b3b!important;}
+body[data-edition] .grid4 .metric.absentMetric b,body[data-edition] .grid4 .metric.absentMetric span{color:#a52323!important;}
+body[data-edition] .grid4 .metric.pendingMetric b,body[data-edition] .grid4 .metric.pendingMetric span{color:#8a6100!important;}
+body[data-edition] .grid4 .metric.totalMetric b,body[data-edition] .grid4 .metric.totalMetric span{color:#174f9a!important;}
+
+/* Small stats controls/tabs adapt to the selected edition. */
+body[data-edition] .filter{background:color-mix(in srgb,var(--ed-accent) 10%,var(--surface))!important;color:var(--surfaceText)!important;border-color:color-mix(in srgb,var(--ed-accent) 28%,transparent)!important;}
+body[data-edition] .filter.active{background:var(--ed-accent)!important;color:#fff!important;border-color:var(--ed-accent)!important;}
+
+/* Unmarked attendance controls are neutral in every edition: no green/red/grey outlines. */
+body[data-edition] .status:not(.active),body[data-edition] .status.green:not(.active),body[data-edition] .status.red:not(.active),body[data-edition] .status.gray:not(.active){background:var(--neutralControlBg)!important;color:var(--surfaceText)!important;border-color:var(--neutralControlBorder)!important;box-shadow:none!important;}
+body[data-edition] .status.green.active{background:#217b4e!important;border-color:#217b4e!important;color:#fff!important;box-shadow:0 4px 0 #17603b!important;}
+body[data-edition] .status.red.active{background:#b94242!important;border-color:#b94242!important;color:#fff!important;box-shadow:0 4px 0 #903030!important;}
+body[data-edition] .status.gray.active{background:#626d76!important;border-color:#626d76!important;color:#fff!important;box-shadow:0 4px 0 #4a545c!important;}
+
+/* Add Extra Class and Save Attendance are the same primary-action system. */
+body[data-edition] .logActions .addExtraBtn,body[data-edition] .logActions .saveAttendanceBtn{background:var(--ed-accent)!important;color:#fff!important;border-color:transparent!important;border-radius:var(--actionRadius,14px)!important;box-shadow:0 6px 0 color-mix(in srgb,var(--ed-accent) 62%,#000 38%),0 12px 22px color-mix(in srgb,var(--ed-accent) 20%,transparent)!important;text-shadow:none!important;}
+body[data-edition] .logActions .addExtraBtn:active,body[data-edition] .logActions .saveAttendanceBtn:active{transform:translateY(3px)!important;box-shadow:0 3px 0 color-mix(in srgb,var(--ed-accent) 62%,#000 38%)!important;}
+/* Match each edition's button personality. */
+body[data-edition="cosmos"]{--actionRadius:18px}body[data-edition="nebula"]{--actionRadius:999px}body[data-edition="orbit"]{--actionRadius:8px}body[data-edition="observatory"]{--actionRadius:7px}body[data-edition="supernova"]{--actionRadius:18px 18px 7px 18px}body[data-edition="lunar"]{--actionRadius:999px}body[data-edition="voyager"]{--actionRadius:10px}body[data-edition="event-horizon"]{--actionRadius:14px}
+
+/* Edition chips: explicit readable foregrounds, independent of page theme. */
+.editionChoice[data-ed="cosmos"],.editionChoice[data-ed="orbit"],.editionChoice[data-ed="observatory"],.editionChoice[data-ed="supernova"],.editionChoice[data-ed="lunar"],.editionChoice[data-ed="voyager"]{color:#142536!important;}
+.editionChoice[data-ed="nebula"],.editionChoice[data-ed="event-horizon"]{color:#fff!important;}
+.editionChoice[data-ed] b,.editionChoice[data-ed] span{color:inherit!important;opacity:1!important;}
+/* ===== END V18 ===== */
+
 </style>
 </head>
 <body><div id="app"></div>

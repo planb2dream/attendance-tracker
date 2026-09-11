@@ -1257,3 +1257,18 @@ body[data-edition] .logActions .saveAttendanceBtn:active,body[data-edition] .log
 /* Final component contrast repair for headings that sit directly on dark cards. */
 body[data-edition="nebula"] .statsHero,body[data-edition="event-horizon"] .statsHero,body[data-edition="nebula"] .subject,body[data-edition="event-horizon"] .subject{color:#f8f7ff!important;}
 </style>
+<style id="v22-save-note-colour-match">
+/* V22: Save Note keeps its existing size and layout, but its colours now match the primary action buttons in every edition. */
+body[data-edition] .noteBox .saveNoteBtn.btn.soft,
+body[data-edition] .saveNoteBtn.btn.soft{
+  background:var(--ed-accent)!important;
+  color:var(--editionBtnText,#fff)!important;
+  border-color:transparent!important;
+  box-shadow:0 6px 0 color-mix(in srgb,var(--ed-accent) 62%,#000 38%),0 12px 22px color-mix(in srgb,var(--ed-accent) 20%,transparent)!important;
+  text-shadow:none!important;
+}
+body[data-edition] .noteBox .saveNoteBtn.btn.soft:active,
+body[data-edition] .saveNoteBtn.btn.soft:active{
+  box-shadow:0 3px 0 color-mix(in srgb,var(--ed-accent) 62%,#000 38%),0 6px 12px color-mix(in srgb,var(--ed-accent) 16%,transparent)!important;
+}
+</style>

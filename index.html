@@ -528,6 +528,89 @@ body[data-edition] .saveAttendance:active,body[data-edition] .scheduleManage:act
 /* make labels on page surfaces adaptive */
 body[data-edition] .sectionTitle,body[data-edition] .statsLegend,body[data-edition] .statsLegend span{color:var(--editionText)!important}
 
+
+/* ===== V17 FINAL CONTRAST SYSTEM =====
+   Edition controls the visual mode. Every text color is tied to the surface
+   immediately behind it, not to a single global light/dark text color. */
+body[data-edition]{
+  --pageText:#162231; --pageSoft:#526274;
+  --surface:#ffffff; --surfaceText:#162231; --surfaceSoft:#566579;
+  --inputBg:color-mix(in srgb,var(--ed-accent) 10%,#fff);
+  --inputText:#162231; --inputPlaceholder:#657286;
+  --navBg:#ffffff; --navText:#536173; --buttonText:#fff;
+  --statusText:#1c2937;
+}
+/* Light editions: never inherit old system-dark values */
+body[data-edition="cosmos"]{--pageText:#132332;--pageSoft:#53697a;--surface:rgba(255,255,255,.94);--surfaceText:#132332;--surfaceSoft:#53697a;--inputBg:#eaf8ff;--inputText:#132332;--inputPlaceholder:#60788a;--navBg:rgba(255,255,255,.96);--navText:#53697a;}
+body[data-edition="orbit"]{--pageText:#10264a;--pageSoft:#5d6f8c;--surface:#ffffff;--surfaceText:#10264a;--surfaceSoft:#5d6f8c;--inputBg:#edf4ff;--inputText:#10264a;--inputPlaceholder:#667896;--navBg:#f4f8ff;--navText:#5d6f8c;}
+body[data-edition="observatory"]{--pageText:#1b3145;--pageSoft:#607184;--surface:#ffffff;--surfaceText:#1b3145;--surfaceSoft:#607184;--inputBg:#eef3f8;--inputText:#1b3145;--inputPlaceholder:#69798a;--navBg:#f5f7fa;--navText:#607184;}
+body[data-edition="supernova"]{--pageText:#4a2418;--pageSoft:#875c50;--surface:#fffaf6;--surfaceText:#4a2418;--surfaceSoft:#875c50;--inputBg:#fff0e4;--inputText:#4a2418;--inputPlaceholder:#93685b;--navBg:#fff7f0;--navText:#875c50;}
+body[data-edition="lunar"]{--pageText:#1e2b40;--pageSoft:#627089;--surface:rgba(255,255,255,.96);--surfaceText:#1e2b40;--surfaceSoft:#627089;--inputBg:#edf1f8;--inputText:#1e2b40;--inputPlaceholder:#748198;--navBg:#f8faff;--navText:#627089;}
+body[data-edition="voyager"]{--pageText:#123b42;--pageSoft:#53777c;--surface:#fbffff;--surfaceText:#123b42;--surfaceSoft:#53777c;--inputBg:#e7f8f7;--inputText:#123b42;--inputPlaceholder:#638287;--navBg:#edfafa;--navText:#53777c;}
+/* True dark editions */
+body[data-edition="nebula"]{--pageText:#f7f4ff;--pageSoft:#d8cfe8;--surface:#2a2140;--surfaceText:#f8f5ff;--surfaceSoft:#d8cfe8;--inputBg:#40345b;--inputText:#fff;--inputPlaceholder:#d1c7e1;--navBg:#211a34;--navText:#d8cfe8;--buttonText:#fff;--statusText:#f8f5ff;}
+body[data-edition="event-horizon"]{--pageText:#f7f2ff;--pageSoft:#cfc3dc;--surface:#1b1726;--surfaceText:#f7f2ff;--surfaceSoft:#cfc3dc;--inputBg:#30283d;--inputText:#fff;--inputPlaceholder:#cfc3dc;--navBg:#13111c;--navText:#cfc3dc;--buttonText:#fff;--statusText:#f7f2ff;}
+
+/* Page/background text */
+body[data-edition],body[data-edition] .app,body[data-edition] .container{color:var(--pageText)!important;}
+body[data-edition] .header{color:var(--pageText)!important;background:color-mix(in srgb,var(--surface) 84%,transparent)!important;}
+body[data-edition] .brand,body[data-edition] .datecenter,body[data-edition] .datecenter b,
+body[data-edition] .container>.sectionTitle,body[data-edition] h1,body[data-edition] h2,body[data-edition] h3{color:var(--pageText)!important;}
+body[data-edition] .sub,body[data-edition] .datecenter span,body[data-edition] .container>p.small,body[data-edition] .footer{color:var(--pageSoft)!important;}
+
+/* Card text always follows the card surface */
+body[data-edition] .card,body[data-edition] .formCard,body[data-edition] .noteBox,
+body[data-edition] .statsHero,body[data-edition] .subject,body[data-edition] .modalBox{background:var(--surface)!important;color:var(--surfaceText)!important;}
+body[data-edition] .card b,body[data-edition] .card strong,body[data-edition] .formCard>b,
+body[data-edition] .sessionName,body[data-edition] .subjectName,body[data-edition] .sectionTitle,
+body[data-edition] .progressHead b,body[data-edition] .label,body[data-edition] .ringIn{color:var(--surfaceText)!important;}
+body[data-edition] .small,body[data-edition] .sessionTime,body[data-edition] .subjectMeta,
+body[data-edition] .metric span,body[data-edition] .progressText,body[data-edition] .locktag,
+body[data-edition] .madeby{color:var(--surfaceSoft)!important;opacity:1!important;}
+
+/* Inputs: themed lighter surface + independent readable typed/placeholder text */
+body[data-edition] input,body[data-edition] .input,body[data-edition] textarea,body[data-edition] select,
+body[data-edition] .timeWheelTrigger{background:var(--inputBg)!important;color:var(--inputText)!important;border-color:color-mix(in srgb,var(--ed-accent) 28%,var(--line))!important;caret-color:var(--ed-accent)!important;opacity:1!important;}
+body[data-edition] input::placeholder,body[data-edition] textarea::placeholder{color:var(--inputPlaceholder)!important;opacity:1!important;}
+body[data-edition] #dayNote,body[data-edition] textarea#dayNote{background:var(--inputBg)!important;color:var(--inputText)!important;}
+
+/* Navigation has its own surface */
+body[data-edition] .nav{background:var(--navBg)!important;color:var(--navText)!important;}
+body[data-edition] .nav button{color:var(--navText)!important;}
+body[data-edition] .nav button.active{background:color-mix(in srgb,var(--ed-accent) 15%,var(--navBg))!important;color:var(--ed-accent)!important;}
+
+/* Primary buttons: one reliable contrast rule */
+body[data-edition] .btn,body[data-edition] .saveAttendance,body[data-edition] .scheduleManage,
+body[data-edition] button[data-act="saveNote"],body[data-edition] button[data-act="addExtra"],
+body[data-edition] button[data-act="saveSettings"],body[data-edition] .holiday{background:var(--ed-accent)!important;color:var(--buttonText)!important;text-shadow:none!important;}
+body[data-edition] .btn *,body[data-edition] .saveAttendance *,body[data-edition] .scheduleManage *,
+body[data-edition] button[data-act="saveNote"] *,body[data-edition] button[data-act="addExtra"] *,
+body[data-edition] button[data-act="saveSettings"] *{color:inherit!important;}
+body[data-edition] .btn.soft,body[data-edition] .todayCool{background:color-mix(in srgb,var(--ed-accent) 15%,var(--surface))!important;color:var(--ed-accent)!important;}
+
+/* Attendance choices: readable before marking; darker with white text after marking */
+body[data-edition] .status{background:color-mix(in srgb,var(--surfaceText) 6%,var(--surface))!important;color:var(--statusText)!important;}
+body[data-edition] .status.green{border-color:#6db78a!important}.status.red{border-color:#d98a8a!important}.status.gray{border-color:#9aa5ad!important}
+body[data-edition] .status.green.active{background:#1f7a4d!important;border-color:#1f7a4d!important;color:#fff!important;}
+body[data-edition] .status.red.active{background:#b63f3f!important;border-color:#b63f3f!important;color:#fff!important;}
+body[data-edition] .status.gray.active{background:#5d6871!important;border-color:#5d6871!important;color:#fff!important;}
+
+/* Fixed meaningful statistics colors — never inherit edition text */
+.metric.presentMetric{background:#dcf7e7!important;color:#126b3b!important;border-color:#9fd9b7!important}.metric.presentMetric b,.metric.presentMetric span{color:#126b3b!important}
+.metric.absentMetric{background:#ffe1e1!important;color:#a52323!important;border-color:#efb1b1!important}.metric.absentMetric b,.metric.absentMetric span{color:#a52323!important}
+.metric.pendingMetric{background:#fff1bd!important;color:#8a6100!important;border-color:#e6c76a!important}.metric.pendingMetric b,.metric.pendingMetric span{color:#8a6100!important}
+.metric.totalMetric{background:#ddebff!important;color:#174f9a!important;border-color:#a9c9f5!important}.metric.totalMetric b,.metric.totalMetric span{color:#174f9a!important}
+
+/* Edition selector text is explicitly matched to each chip */
+.editionChoice[data-ed="cosmos"],.editionChoice[data-ed="orbit"],.editionChoice[data-ed="observatory"],.editionChoice[data-ed="supernova"],.editionChoice[data-ed="lunar"],.editionChoice[data-ed="voyager"]{color:#152536!important;}
+.editionChoice[data-ed="nebula"],.editionChoice[data-ed="event-horizon"]{color:#fff!important;}
+.editionChoice[data-ed] span{color:inherit!important;opacity:.78!important;}
+
+/* Remove any influence of the legacy system dark theme from edition surfaces */
+body[data-edition="cosmos"],body[data-edition="orbit"],body[data-edition="observatory"],body[data-edition="supernova"],body[data-edition="lunar"],body[data-edition="voyager"]{color-scheme:light!important;}
+body[data-edition="nebula"],body[data-edition="event-horizon"]{color-scheme:dark!important;}
+/* ===== END V17 CONTRAST SYSTEM ===== */
+
 </style>
 </head>
 <body><div id="app"></div>

@@ -880,4 +880,70 @@ function appConfirm(message,title="Confirmation"){
   </div>
 </div>
 
-</body></html>
+</body></html><style id="v15-fixes">
+/* v15 readability + meaningful status fixes */
+body[data-edition] .editionChoice{color:#14202b!important;background:#f4f7fb!important}
+body[data-edition] .editionChoice b{color:inherit!important}body[data-edition] .editionChoice span{color:color-mix(in srgb,currentColor 68%,transparent)!important}
+.editionChoice[data-ed="nebula"],.editionChoice[data-ed="event-horizon"]{color:#fff!important}.editionChoice[data-ed="nebula"] span,.editionChoice[data-ed="event-horizon"] span{color:#eee6ff!important}
+.editionChoice[data-ed="supernova"]{color:#3b160a!important}.editionChoice[data-ed="supernova"] span{color:#5b2b18!important}
+.editionChoice[data-ed="orbit"],.editionChoice[data-ed="voyager"]{color:#10233b!important}
+/* Page/background text always uses page contrast token */
+body[data-edition] .header,body[data-edition] .brand,body[data-edition] .sub,body[data-edition] .datebar,body[data-edition] .datecenter,body[data-edition] .sectionTitle{color:var(--editionText)!important}
+body[data-edition] .sub,body[data-edition] .datecenter span{color:var(--editionSoft)!important}
+/* Lunar explicitly remains dark text on its light background */
+body[data-edition="lunar"]{--editionText:#17243a!important;--editionSoft:#4d5d73!important}
+/* All primary actions share one edition design */
+body[data-edition] .btn:not(.outline):not(.soft),body[data-edition] .saveAttendance,body[data-edition] .scheduleManage{background:var(--ed-accent)!important;color:var(--editionBtnText)!important;box-shadow:0 7px 0 color-mix(in srgb,var(--ed-accent) 62%,#000 38%),0 13px 22px color-mix(in srgb,var(--ed-accent) 20%,transparent)!important}
+/* Status buttons: normal light, selected darker, readable text */
+.status.green{background:#e4f8eb!important;color:#176b3d!important;border-color:#8dd7a9!important}.status.red{background:#ffe6e6!important;color:#9f2525!important;border-color:#e7a0a0!important}.status.gray{background:#edf0f2!important;color:#46515b!important;border-color:#c8d0d5!important}
+.status.green.active{background:#2f8a55!important;color:#fff!important;border-color:#236f43!important;box-shadow:0 4px 0 #236f43!important}.status.red.active{background:#c84242!important;color:#fff!important;border-color:#a52f2f!important;box-shadow:0 4px 0 #a52f2f!important}.status.gray.active{background:#69757d!important;color:#fff!important;border-color:#536068!important;box-shadow:0 4px 0 #536068!important}
+/* Meaningful stat cards always keep their semantic colours */
+.metric.presentMetric{background:#dcf7e7!important;color:#126b3b!important;border-color:#9cddba!important}.metric.absentMetric{background:#ffe1e1!important;color:#a52323!important;border-color:#efb0b0!important}.metric.pendingMetric{background:#fff1bd!important;color:#8a6100!important;border-color:#e7c965!important}.metric.totalMetric{background:#ddebff!important;color:#174f9a!important;border-color:#a9c8f2!important}
+.metric.presentMetric b,.metric.presentMetric span{color:#126b3b!important}.metric.absentMetric b,.metric.absentMetric span{color:#a52323!important}.metric.pendingMetric b,.metric.pendingMetric span{color:#8a6100!important}.metric.totalMetric b,.metric.totalMetric span{color:#174f9a!important}
+</style>
+<style id="v16-edition-input-surfaces">
+/* v16: every writing/input box follows the active edition's lighter colour family */
+body[data-edition]{
+  --editionInputBg:color-mix(in srgb,var(--ed-accent) 13%,var(--editionSurface) 87%);
+  --editionInputText:color-mix(in srgb,var(--editionText) 92%,#000 8%);
+  --editionPlaceholder:color-mix(in srgb,var(--editionText) 58%,transparent);
+  --editionInputBorder:color-mix(in srgb,var(--ed-accent) 30%,var(--editionSurface) 70%);
+}
+/* All writable controls and date/time selectors use the same adaptive edition surface */
+body[data-edition] .input,
+body[data-edition] input:not([type="checkbox"]):not([type="radio"]),
+body[data-edition] textarea,
+body[data-edition] select,
+body[data-edition] .timeWheelTrigger{
+  background:var(--editionInputBg)!important;
+  color:var(--editionInputText)!important;
+  border-color:var(--editionInputBorder)!important;
+  caret-color:var(--ed-accent)!important;
+  opacity:1!important;
+}
+body[data-edition] .input::placeholder,
+body[data-edition] input::placeholder,
+body[data-edition] textarea::placeholder{
+  color:var(--editionPlaceholder)!important;
+  opacity:1!important;
+}
+/* Note area is part of the same edition colour family, slightly more visible */
+body[data-edition] .noteBox textarea,
+body[data-edition] .noteBox .input{
+  background:color-mix(in srgb,var(--ed-accent) 17%,var(--editionSurface) 83%)!important;
+}
+/* Dark editions still use a lighter themed writing surface, never fixed white */
+body[data-edition="nebula"],body[data-edition="event-horizon"]{
+  --editionInputBg:color-mix(in srgb,var(--ed-accent) 20%,#f7f5ff 80%);
+  --editionInputText:#172230;
+  --editionPlaceholder:#657080;
+  --editionInputBorder:color-mix(in srgb,var(--ed-accent) 35%,#dfe1ec 65%);
+}
+/* Lunar remains a light, readable moon-themed surface */
+body[data-edition="lunar"]{
+  --editionInputBg:color-mix(in srgb,#697a9d 12%,#f7f9fd 88%);
+  --editionInputText:#17243a;
+  --editionPlaceholder:#5c6a7f;
+  --editionInputBorder:#bdc8da;
+}
+</style>

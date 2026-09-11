@@ -719,6 +719,55 @@ body[data-edition] .saveNoteBtn:active{
   box-shadow:0 3px 0 color-mix(in srgb,var(--ed-accent) 62%,#000 38%)!important;
 }
 </style>
+
+<style id="v21-lunar-complete-contrast-fix">
+/* ===== V21 LUNAR COMPLETE CONTRAST FIX =====
+   Lunar is a light moonstone edition. Every visible foreground is tied to the surface directly behind it. */
+body[data-edition="lunar"]{
+  --ed-bg1:#eef2f8;--ed-bg2:#d7e0ef;--ed-accent:#526b96;--ed-card:#ffffff;
+  --pageText:#1b2a41;--pageSoft:#667892;--surface:#ffffff;--surfaceText:#1b2a41;--surfaceSoft:#667892;
+  --navBg:#f8faff;--navText:#5f718c;--inputBg:#e8eef7;--inputText:#1b2a41;--inputPlaceholder:#71829a;
+  --editionText:#1b2a41;--editionSoft:#667892;--editionSurface:#ffffff;--editionNav:#f8faff;--editionInput:#e8eef7;
+  color-scheme:light!important;
+}
+/* Direct page text */
+body[data-edition="lunar"],body[data-edition="lunar"] .app,body[data-edition="lunar"] .container,
+body[data-edition="lunar"] .header,body[data-edition="lunar"] .brand,body[data-edition="lunar"] .datebar,body[data-edition="lunar"] .datecenter,body[data-edition="lunar"] .sectionTitle{color:#1b2a41!important;}
+body[data-edition="lunar"] .sub,body[data-edition="lunar"] .small,body[data-edition="lunar"] .sessionTime,body[data-edition="lunar"] .progressText,body[data-edition="lunar"] .locktag,body[data-edition="lunar"] .madeby,body[data-edition="lunar"] .datecenter span{color:#667892!important;opacity:1!important;}
+/* White cards always receive dark moonstone text */
+body[data-edition="lunar"] .card,body[data-edition="lunar"] .formCard,body[data-edition="lunar"] .noteBox,body[data-edition="lunar"] .progressCard,body[data-edition="lunar"] .session,body[data-edition="lunar"] .calendar,body[data-edition="lunar"] .modalBox{background:#ffffff!important;color:#1b2a41!important;border-color:#aebbd0!important;}
+body[data-edition="lunar"] .card *,body[data-edition="lunar"] .formCard *,body[data-edition="lunar"] .noteBox *,body[data-edition="lunar"] .progressCard *,body[data-edition="lunar"] .session *,body[data-edition="lunar"] .calendar *{text-shadow:none!important;}
+body[data-edition="lunar"] .sessionName,body[data-edition="lunar"] .label,body[data-edition="lunar"] .subjectName,body[data-edition="lunar"] .sectionTitle,body[data-edition="lunar"] .metric b,body[data-edition="lunar"] .pct,body[data-edition="lunar"] .ringIn{color:#1b2a41!important;}
+/* Inputs */
+body[data-edition="lunar"] .input,body[data-edition="lunar"] input,body[data-edition="lunar"] textarea,body[data-edition="lunar"] select{background:#e8eef7!important;color:#1b2a41!important;border-color:#b7c4d6!important;}
+body[data-edition="lunar"] input::placeholder,body[data-edition="lunar"] textarea::placeholder{color:#71829a!important;opacity:1!important;}
+/* Stats hero and subjects keep a lively but readable moonstone treatment */
+body[data-edition="lunar"] .statsHero,body[data-edition="lunar"] .subject{background:linear-gradient(135deg,#ffffff,#eef3fa)!important;color:#1b2a41!important;border-color:#aebbd0!important;}
+body[data-edition="lunar"] .statsHero .ringIn{background:#ffffff!important;color:#1b2a41!important;border:1px solid #b4c0d2!important;}
+body[data-edition="lunar"] .statsHero .small,body[data-edition="lunar"] .subjectMeta{color:#667892!important;}
+body[data-edition="lunar"] .subject.statsGood .pct{color:#167044!important;}
+body[data-edition="lunar"] .subject.statsBad .pct{color:#a63b3b!important;}
+/* Calendar: brighter, higher-contrast and no dull dark-theme leftovers */
+body[data-edition="lunar"] .calendar{background:linear-gradient(135deg,#ffffff,#f4f7fc)!important;}
+body[data-edition="lunar"] .calendar .row>b,body[data-edition="lunar"] .calDow{color:#52647f!important;}
+body[data-edition="lunar"] .calDay{background:#eaf0f8!important;color:#1b2a41!important;border-color:#b5c2d5!important;font-weight:850!important;box-shadow:0 3px 8px rgba(60,80,110,.08)!important;}
+body[data-edition="lunar"] .calDay:hover{background:#dfe8f5!important;}
+body[data-edition="lunar"] .calDay.today{background:#526b96!important;color:#ffffff!important;border-color:#526b96!important;outline:0!important;box-shadow:0 7px 16px rgba(82,107,150,.28)!important;}
+body[data-edition="lunar"] .calDay.empty{background:transparent!important;border-color:transparent!important;box-shadow:none!important;}
+/* Navigation */
+body[data-edition="lunar"] .nav{background:#f8faff!important;color:#5f718c!important;border-color:#aebbd0!important;}
+body[data-edition="lunar"] .nav button{color:#5f718c!important;}
+body[data-edition="lunar"] .nav button.active{background:#dfe7f3!important;color:#405b87!important;border-radius:18px!important;}
+/* Small stat controls */
+body[data-edition="lunar"] .filter{background:#e8eef7!important;color:#1b2a41!important;border-color:#aebbd0!important;}
+body[data-edition="lunar"] .filter.active{background:#526b96!important;color:#ffffff!important;border-color:#526b96!important;}
+/* Neutral attendance buttons */
+body[data-edition="lunar"] .status:not(.active),body[data-edition="lunar"] .status.green:not(.active),body[data-edition="lunar"] .status.red:not(.active),body[data-edition="lunar"] .status.gray:not(.active){background:#e8eef7!important;color:#1b2a41!important;border-color:#b7c4d6!important;}
+/* Restore semantic coloured active states */
+body[data-edition="lunar"] .status.green.active{background:#217b4e!important;color:#ffffff!important;border-color:#217b4e!important;}
+body[data-edition="lunar"] .status.red.active{background:#b94242!important;color:#ffffff!important;border-color:#b94242!important;}
+body[data-edition="lunar"] .status.gray.active{background:#626d76!important;color:#ffffff!important;border-color:#626d76!important;}
+</style>
 </head>
 <body><div id="app"></div>
 <script>
@@ -746,13 +795,13 @@ function requireSavedRoll(){if(hasSavedRoll())return true;showAppAlert('Please s
 function applyTheme(){
   /* Each edition is now a complete, self-contained theme. No separate light/dark/system mode. */
   const edition=state.settings.edition||"cosmos";
-  const darkEditions=new Set(["nebula","event-horizon","lunar"]);
+  const darkEditions=new Set(["nebula","event-horizon"]);
   const resolved=darkEditions.has(edition)?"dark":"light";
   state.settings.theme="edition";
   document.documentElement.setAttribute("data-theme",resolved);
   document.body.setAttribute("data-edition",edition);
   const meta=document.querySelector('meta[name="theme-color"]');
-  const metaColors={cosmos:"#cfefff",nebula:"#2b1748",orbit:"#e8f5ff",observatory:"#e9eef4",supernova:"#ffdfc2",lunar:"#252c3b",voyager:"#d7f5f3","event-horizon":"#12101d"};
+  const metaColors={cosmos:"#cfefff",nebula:"#2b1748",orbit:"#e8f5ff",observatory:"#e9eef4",supernova:"#ffdfc2",lunar:"#edf1f8",voyager:"#d7f5f3","event-horizon":"#12101d"};
   if(meta)meta.setAttribute("content",metaColors[edition]||"#cfefff");
 }
 function watchSystemTheme(){ /* intentionally disabled: editions control appearance */ }

@@ -398,6 +398,7 @@ body[data-edition="orbit"]{--ed-bg1:#e8f5ff;--ed-bg2:#dce9ff;--ed-accent:#356ae6
 body[data-edition="observatory"]{--ed-bg1:#e9eef4;--ed-bg2:#d5dde8;--ed-accent:#244b72;--ed-card:#ffffff}
 body[data-edition="supernova"]{--ed-bg1:#ffdfc2;--ed-bg2:#ffd0a6;--ed-accent:#ef5a2f;--ed-card:#fffaf6}
 body[data-edition="lunar"]{--ed-bg1:#edf1f8;--ed-bg2:#d9e1ef;--ed-accent:#697a9d;--ed-card:#ffffff}
+body[data-edition="heartbeat"]{--ed-bg1:#fff8f8;--ed-bg2:#ffe7e9;--ed-accent:#d92845;--ed-card:#ffffff}
 body[data-edition="voyager"]{--ed-bg1:#d7f5f3;--ed-bg2:#d6e7ff;--ed-accent:#167d88;--ed-card:#fbffff}
 body[data-edition="event-horizon"]{--ed-bg1:#12101d;--ed-bg2:#2a1836;--ed-accent:#9b5cff;--ed-card:#181523}
 body[data-edition]{background:linear-gradient(135deg,var(--ed-bg1),var(--ed-bg2))!important}
@@ -801,7 +802,7 @@ function applyTheme(){
   document.documentElement.setAttribute("data-theme",resolved);
   document.body.setAttribute("data-edition",edition);
   const meta=document.querySelector('meta[name="theme-color"]');
-  const metaColors={cosmos:"#cfefff",nebula:"#2b1748",orbit:"#e8f5ff",observatory:"#e9eef4",supernova:"#ffdfc2",lunar:"#edf1f8",voyager:"#d7f5f3","event-horizon":"#12101d"};
+  const metaColors={cosmos:"#cfefff",nebula:"#2b1748",orbit:"#e8f5ff",observatory:"#e9eef4",supernova:"#ffdfc2",lunar:"#edf1f8",heartbeat:"#fff1f2",voyager:"#d7f5f3","event-horizon":"#12101d"};
   if(meta)meta.setAttribute("content",metaColors[edition]||"#cfefff");
 }
 function watchSystemTheme(){ /* intentionally disabled: editions control appearance */ }
@@ -932,7 +933,7 @@ if(combined.length){h+=`<div class="sectionTitle">🔗 Combined Morning & Evenin
 return h}
 function calendarTab(){let m=parseKey(state.calendarMonth),y=m.getFullYear(),mo=m.getMonth(),first=new Date(y,mo,1),start=first.getDay(),days=new Date(y,mo+1,0).getDate();let h=`<div class="card calendar"><div class="row" style="justify-content:space-between;margin-bottom:10px"><button class="btn outline" data-act="calPrev">‹</button><b>${monthFmt(first)}</b><button class="btn outline" data-act="calNext">›</button></div><div class="calGrid">${["Sun","Mon","Tue","Wed","Thu","Fri","Sat"].map(x=>`<div class="calDow">${x}</div>`).join("")}${Array.from({length:start},()=>`<div class="calDay empty"></div>`).join("")}`;for(let n=1;n<=days;n++){let d=new Date(y,mo,n),dk=key(d),ss=sessionsFor(d),dot="";if(state.holidays[dk])dot="holiday";else if(ss.length){let vals=ss.map((_,i)=>statusOf(dk,i));if(vals.some(v=>v===STATUS.ABSENT||v===STATUS.LEAVE))dot=vals.some(v=>v===STATUS.ATTENDED)?"mix":"bad";else if(vals.some(v=>v===STATUS.ATTENDED))dot="good"}h+=`<button class="calDay ${dk===key(today())?"today":""}" data-act="calPick" data-v="${dk}">${n}${dot?`<i class="dot ${dot}"></i>`:""}</button>`}h+=`</div></div><div class="banner info">🟢 Present · 🔴 Absent · 🟡 Mixed · 🟣 Holiday. Tap a date to open its log.</div>`;return h}
 function editionBadge(){const m={cosmos:"🌌 COSMOS",nebula:"🌠 NEBULA",orbit:"🪐 ORBIT",observatory:"🔭 OBSERVATORY",supernova:"🌟 SUPERNOVA",lunar:"🌙 LUNAR",voyager:"🛰️ VOYAGER","event-horizon":"🕳️ EVENT HORIZON"};return (m[state.settings.edition||"cosmos"]||"🌌 COSMOS")+" EDITION • UI VERIFIED"}
-function editionChoices(){const ed=[['cosmos','🌌','Cosmos','Atmospheric'],['nebula','🌠','Nebula','Colorful cosmic'],['orbit','🪐','Orbit','Futuristic'],['observatory','🔭','Observatory','Scientific'],['supernova','🌟','Supernova','Bold energy'],['lunar','🌙','Lunar','Calm & elegant'],['voyager','🛰️','Voyager','Mission style'],['event-horizon','🕳️','Event Horizon','Dark & mysterious']];let cur=state.settings.edition||'cosmos';return ed.map(x=>`<button type="button" class="editionChoice ${cur===x[0]?'active':''}" data-act="edition" data-v="${x[0]}" data-ed="${x[0]}"><b>${x[1]} ${x[2]}</b><span>${x[3]}</span></button>`).join('')}
+function editionChoices(){const ed=[['cosmos','🌌','Cosmos','Atmospheric'],['nebula','🌠','Nebula','Colorful cosmic'],['orbit','🪐','Orbit','Futuristic'],['observatory','🔭','Observatory','Scientific'],['supernova','🌟','Supernova','Bold energy'],['lunar','🌙','Lunar','Calm & elegant'],['heartbeat','❤️','Heartbeat','Red & white'],['voyager','🛰️','Voyager','Mission style'],['event-horizon','🕳️','Event Horizon','Dark & mysterious']];let cur=state.settings.edition||'cosmos';return ed.map(x=>`<button type="button" class="editionChoice ${cur===x[0]?'active':''}" data-act="edition" data-v="${x[0]}" data-ed="${x[0]}"><b>${x[1]} ${x[2]}</b><span>${x[3]}</span></button>`).join('')}
 function settingsTab(){let s=state.settings;let rollBlock=s.rollLocked&&s.rollNumber?`<label class="label">Clinical Posting Roll Number</label><div class="input rollLockInput" style="display:flex;align-items:center;justify-content:space-between"><b>${esc(s.rollNumber)}</b><span>🔒 Permanently locked</span></div><p class="small">Your roll number is permanently saved and cannot be changed.</p>`:`<label class="label">Clinical Posting Roll Number</label><input id="setRoll" class="input" type="number" min="1" max="100" value="${esc(s.rollNumber||"")}" placeholder="Enter your roll number (1–100)"><p class="small">⚠️ Enter carefully. Your roll number must be saved and permanently locked before attendance can be marked.</p>`;return `<div class="card formCard"><b>⚙️ Settings</b><label class="label">Name</label><input id="setName" class="input settingsInput" value="${esc(s.name)}"><label class="label">Course / Academic part</label><input id="setCourse" class="input settingsInput" value="${esc(s.course)}"><label class="label">Minimum required attendance (%)</label><input id="setRequired" class="input settingsInput" type="number" min="1" max="100" value="${s.required}"><p class="small" style="margin-top:12px">🔒 Attendance logging time is fixed at 6:00 AM and cannot be changed.</p>${rollBlock}<p class="small">The app automatically switches to the new roll-number group arrangement from 9 Aug 2027.</p><div style="margin-top:14px"><button class="btn" data-act="saveSettings">💾 Save Settings</button></div></div><div class="card formCard"><b>🌌 App Edition</b><p class="small">Choose a complete visual edition. This changes only appearance; your attendance data and calculations stay exactly the same.</p><div class="editionGrid">${editionChoices()}</div></div><div class="card formCard"><b>📚 Schedule</b><p class="small">Schedule changes apply to new/unsaved classes. Saved attendance keeps its original subject permanently for accurate history and statistics.</p><button class="btn scheduleManage" type="button" onclick="openManageSchedule()">Manage schedule</button></div><p class="small" style="text-align:center">Tracking starts on 7 Sep 2026 and continues indefinitely.</p><div class="cosmosEdition">${editionBadge()}</div>`}
 function scheduleModal(){let s=state.settings.schedule;let body=`<div class="modal" data-act="closeModal"><div class="modalBox" onclick="event.stopPropagation()"><div class="row" style="justify-content:space-between"><b>Manage weekly schedule</b><button class="btn outline" data-act="closeModal">Close</button></div><p class="small">Edit times and subjects. Changes affect new/unsaved classes only; already saved attendance keeps its original class snapshot.</p>`;for(let day=1;day<=6;day++){body+=`<div class="formCard card"><b>${DAYS[day]}</b><div id="sch${day}">${(s[day]||[]).map((x,i)=>scheduleRow(day,i,x)).join("")}</div><button class="btn soft" data-act="addSession" data-day="${day}">+ Add class</button></div>`}body+=`<div class="row"><button class="btn grow" data-act="saveSchedule">Save schedule</button><button class="btn outline" data-act="closeModal">Cancel</button></div></div></div>`;document.body.insertAdjacentHTML("beforeend",body)}
 function scheduleSubjectSelect(selected){let known=SUBJECT_LIST.includes(selected);let opts=SUBJECT_LIST.map(v=>`<option value="${esc(v)}" ${v===selected?"selected":""}>${esc(v)}</option>`).join("");return `<div class="grow schSubjectWrap"><select class="input schSubject">${known?"":`<option value="__OTHER__" selected>Other (custom)</option>`}${opts}<option value="__OTHER__" ${known?"":"selected"}>Other (type manually)</option></select><input class="input schOther ${known?"hidden":""}" style="margin-top:6px" value="${known?"":esc(selected)}" placeholder="Type subject carefully"></div>`}
@@ -1141,6 +1142,7 @@ body[data-edition] .editionChoice b{color:inherit!important}body[data-edition] .
 .editionChoice[data-ed="nebula"],.editionChoice[data-ed="event-horizon"]{color:#fff!important}.editionChoice[data-ed="nebula"] span,.editionChoice[data-ed="event-horizon"] span{color:#eee6ff!important}
 .editionChoice[data-ed="supernova"]{color:#3b160a!important}.editionChoice[data-ed="supernova"] span{color:#5b2b18!important}
 .editionChoice[data-ed="orbit"],.editionChoice[data-ed="voyager"]{color:#10233b!important}
+.editionChoice[data-ed="heartbeat"]{background:linear-gradient(135deg,#fffafa,#ffd9de)!important;color:#8f1528!important;border-color:#ef9eaa!important}.editionChoice[data-ed="heartbeat"] span{color:#a33444!important}
 /* Page/background text always uses page contrast token */
 body[data-edition] .header,body[data-edition] .brand,body[data-edition] .sub,body[data-edition] .datebar,body[data-edition] .datecenter,body[data-edition] .sectionTitle{color:var(--editionText)!important}
 body[data-edition] .sub,body[data-edition] .datecenter span{color:var(--editionSoft)!important}
@@ -1278,4 +1280,74 @@ body[data-edition="lunar"]{--settingsBoxBg:#e8eef7;--settingsBoxText:#1b2a41;--s
 body[data-edition="voyager"]{--settingsBoxBg:#e7f8f7;--settingsBoxText:#123b42;--settingsBoxPlaceholder:#638287;}
 body[data-edition="nebula"]{--settingsBoxBg:#40345b;--settingsBoxText:#ffffff;--settingsBoxPlaceholder:#d1c7e1;}
 body[data-edition="event-horizon"]{--settingsBoxBg:#30283d;--settingsBoxText:#ffffff;--settingsBoxPlaceholder:#cfc3dc;}
+
+body[data-edition="heartbeat"]{--settingsBoxBg:#fff0f2;--settingsBoxText:#3f1720;--settingsBoxPlaceholder:#9a6871;}
+
+/* ===== HEARTBEAT EDITION — white + red romantic visual system ===== */
+body[data-edition="heartbeat"]{
+  --editionText:#35141b!important;
+  --editionSoft:#7b5960!important;
+  --editionBtnText:#ffffff!important;
+  --editionSurface:#ffffff!important;
+  --editionNav:rgba(255,255,255,.94)!important;
+  --inputBg:#fff0f2!important;
+  --inputText:#35141b!important;
+  --inputPlaceholder:#a8757d!important;
+  --v19-cardText:#35141b!important;
+  --v19-cardSoft:#7b5960!important;
+  --v19-statBase:#ffffff!important;
+  background:linear-gradient(145deg,#fff 0%,#fff6f7 42%,#ffe4e8 100%)!important;
+}
+body[data-edition="heartbeat"]::before{
+  content:""!important;opacity:1!important;z-index:-1!important;
+  background:
+    radial-gradient(circle at 8% 14%,rgba(232,48,73,.18),transparent 22%),
+    radial-gradient(circle at 88% 18%,rgba(255,62,91,.15),transparent 20%),
+    radial-gradient(circle at 16% 62%,rgba(210,30,56,.13),transparent 25%),
+    radial-gradient(circle at 84% 76%,rgba(239,63,88,.18),transparent 24%),
+    radial-gradient(circle at 48% 96%,rgba(214,35,62,.12),transparent 28%),
+    radial-gradient(circle at 50% 42%,rgba(255,255,255,.95),transparent 34%)!important;
+  filter:blur(10px)!important;
+}
+body[data-edition="heartbeat"] .app{position:relative;background:transparent!important;isolation:isolate;}
+body[data-edition="heartbeat"] .app::before{
+  content:"♥\A\A   ♥\A\A ♥\A\A     ♥\A\A   ♥\A\A ♥\A\A     ♥";
+  white-space:pre;position:fixed;inset:50px 0 70px;pointer-events:none;
+  font-family:Georgia,serif;font-size:82px;line-height:1.55;letter-spacing:32vw;
+  color:rgba(214,34,59,.075);filter:blur(.35px);transform:rotate(-8deg);
+  overflow:hidden;z-index:-1;
+}
+body[data-edition="heartbeat"] .header{background:rgba(255,255,255,.78)!important;border-bottom:1px solid rgba(217,40,69,.10);}
+body[data-edition="heartbeat"] .card,body[data-edition="heartbeat"] .formCard,body[data-edition="heartbeat"] .noteBox,body[data-edition="heartbeat"] .statsHero,body[data-edition="heartbeat"] .subject{
+  background:rgba(255,255,255,.92)!important;color:#35141b!important;border-color:rgba(214,40,64,.18)!important;
+  box-shadow:0 12px 30px rgba(174,28,52,.10)!important;
+}
+body[data-edition="heartbeat"] .btn,body[data-edition="heartbeat"] .saveAttendance,body[data-edition="heartbeat"] .scheduleManage,
+body[data-edition="heartbeat"] .logActions .saveAttendanceBtn,body[data-edition="heartbeat"] .logActions .addExtraBtn{
+  background:#d92845!important;color:#fff!important;
+  box-shadow:0 7px 0 #a91b33,0 13px 24px rgba(217,40,69,.24)!important;
+}
+body[data-edition="heartbeat"] .btn.soft{background:#ffe4e8!important;color:#b71f39!important;}
+body[data-edition="heartbeat"] .nav{background:rgba(255,255,255,.96)!important;border-color:rgba(214,40,64,.18)!important;box-shadow:0 -8px 26px rgba(174,28,52,.08)!important;}
+body[data-edition="heartbeat"] .nav button{color:#7b5960!important;}
+body[data-edition="heartbeat"] .nav button.active{color:#c51f3b!important;background:#ffe5e9!important;border-radius:18px!important;}
+body[data-edition="heartbeat"] .input,body[data-edition="heartbeat"] input,body[data-edition="heartbeat"] textarea,body[data-edition="heartbeat"] select,
+body[data-edition="heartbeat"] .settingsInput,body[data-edition="heartbeat"] .rollLockInput{
+  background:#fff0f2!important;color:#35141b!important;border-color:#efb7c0!important;
+}
+body[data-edition="heartbeat"] .input::placeholder,body[data-edition="heartbeat"] textarea::placeholder{color:#a8757d!important;}
+body[data-edition="heartbeat"] .filter{background:#fff0f2!important;color:#7e2637!important;border-color:#efb7c0!important;}
+body[data-edition="heartbeat"] .filter.active{background:#d92845!important;color:#fff!important;border-color:#d92845!important;}
+body[data-edition="heartbeat"] .datebar{background:rgba(255,255,255,.94)!important;}
+body[data-edition="heartbeat"] .calendar{background:rgba(255,255,255,.94)!important;}
+body[data-edition="heartbeat"] .calDay{background:#fff5f6!important;color:#4a1721!important;border-color:#f0c0c7!important;}
+body[data-edition="heartbeat"] .calDay.today{outline-color:#d92845!important;}
+body[data-edition="heartbeat"] .progress>i,body[data-edition="heartbeat"] .bar i{background:#d92845!important;}
+body[data-edition="heartbeat"] .statsHero .ring{background:conic-gradient(#d92845 var(--p),#ffe1e5 0)!important;}
+body[data-edition="heartbeat"] .statsHero .ringIn{background:#fff!important;color:#35141b!important;}
+body[data-edition="heartbeat"] .status:not(.active),body[data-edition="heartbeat"] .status.green:not(.active),body[data-edition="heartbeat"] .status.red:not(.active),body[data-edition="heartbeat"] .status.gray:not(.active){background:#f7ecee!important;color:#70575c!important;border-color:#e7cdd1!important;}
+body[data-edition="heartbeat"] .holiday{background:#ffe1e6!important;color:#b71f39!important;}
+body[data-edition="heartbeat"] .banner.info{background:#ffe8eb!important;color:#b71f39!important;}
+body[data-edition="heartbeat"] .sectionTitle{color:#35141b!important;}
+
 </style>

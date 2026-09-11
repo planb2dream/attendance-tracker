@@ -385,10 +385,11 @@ html,body,#app,.app{min-height:100dvh}
 .nav{bottom:calc(10px + var(--system-bottom))!important}
 @supports (height:100dvh){.app{min-height:100dvh}}
 
-/* Cosmos Edition v6 — smooth directional tab transition (visual only) */
-.tabTransition{animation:tabIn .30s cubic-bezier(.22,.8,.25,1) both;will-change:transform,opacity}
-.tabTransition.forward{--tabShift:14px}.tabTransition.backward{--tabShift:-14px}
-@keyframes tabIn{from{opacity:0;transform:translateX(var(--tabShift,0))}to{opacity:1;transform:translateX(0)}}
+/* Cosmos Edition v7 — fade-only tab transition (visual only) */
+.tabTransition{animation:tabFade .28s ease both;will-change:opacity}
+.tabTransition.forward,.tabTransition.backward{transform:none}
+@keyframes tabFade{from{opacity:0}to{opacity:1}}
+@media (prefers-reduced-motion:reduce){.tabTransition{animation:none}}
 </style>
 </head>
 <body><div id="app"></div>

@@ -374,3 +374,531 @@ html,body,#app,.app{min-height:100dvh}
 .editionChoices{justify-content:center!important;width:100%!important}
 .editionChoice{font-size:11px!important;padding:8px 11px!important}
 .attendanceEnough{color:var(--green)!important;font-weight:850}.cannotMiss{color:var(--red)!important;font-weight:850}
+/* Nebula Glass Edition */
+:root[data-edition="nebula-glass"] body, body.nebula-glass{background:radial-gradient(circle at 15% 15%,rgba(64,224,208,.18),transparent 28%),radial-gradient(circle at 85% 20%,rgba(124,92,255,.20),transparent 30%),radial-gradient(circle at 50% 90%,rgba(0,120,255,.14),transparent 35%),linear-gradient(145deg,#03050c,#08051a 48%,#020811);}
+body.nebula-glass .card,body.nebula-glass .btn,body.nebula-glass .input,body.nebula-glass .statCard,body.nebula-glass .editionChoice,body.nebula-glass .dateCard,body.nebula-glass .navBtn{background:linear-gradient(135deg,rgba(255,255,255,.055),rgba(255,255,255,.012))!important;border:1px solid rgba(170,220,255,.42)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.22),0 8px 24px rgba(0,0,0,.22),0 0 18px rgba(90,140,255,.08)!important;backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px);}
+body.nebula-glass .card{outline:1px solid rgba(130,80,255,.10);}
+body.nebula-glass .btn,body.nebula-glass button{background-color:transparent!important;}
+body.nebula-glass .btn:active,body.nebula-glass button:active{transform:translateY(2px) scale(.985);box-shadow:inset 0 2px 10px rgba(0,0,0,.3)!important;}
+body.nebula-glass .input:focus{border-color:rgba(70,220,255,.8)!important;box-shadow:0 0 0 2px rgba(70,220,255,.12),inset 0 1px 0 rgba(255,255,255,.2)!important;}
+body.nebula-glass .cosmosEdition{background:linear-gradient(90deg,#74e8ff,#b596ff,#74e8ff);-webkit-background-clip:text;background-clip:text;color:transparent;}
+
+/* V18 — Nebula Glass cosmic background override */
+body.nebula-glass, body[data-edition="nebula"], .nebula-glass {
+  background:
+    radial-gradient(ellipse at 18% 18%, rgba(117, 48, 171, .55) 0%, rgba(117,48,171,.20) 22%, transparent 48%),
+    radial-gradient(ellipse at 82% 26%, rgba(52, 92, 145, .45) 0%, rgba(52,92,145,.18) 25%, transparent 52%),
+    radial-gradient(ellipse at 52% 72%, rgba(77, 61, 112, .38) 0%, rgba(77,61,112,.14) 30%, transparent 58%),
+    radial-gradient(circle at 70% 48%, rgba(130, 80, 185, .24) 0%, transparent 28%),
+    linear-gradient(145deg, #020205 0%, #0a0712 35%, #11131a 62%, #030407 100%) !important;
+  background-attachment: fixed !important;
+}
+
+body.nebula-glass::before, body[data-edition="nebula"]::before {
+  content:""; position:fixed; inset:0; pointer-events:none; z-index:-1;
+  background:
+    radial-gradient(circle at 48% 34%, transparent 0 10%, rgba(169,87,255,.10) 17%, transparent 30%),
+    radial-gradient(ellipse at 48% 34%, rgba(61,104,175,.10) 0%, transparent 55%),
+    linear-gradient(115deg, transparent 20%, rgba(139,85,255,.07) 48%, transparent 72%);
+  filter: blur(1px);
+}
+
+body.nebula-glass .card, body.nebula-glass button, body.nebula-glass input, body.nebula-glass textarea,
+body[data-edition="nebula"] .card, body[data-edition="nebula"] button, body[data-edition="nebula"] input, body[data-edition="nebula"] textarea {
+  background-color: rgba(10, 8, 18, .16) !important;
+  border-color: rgba(172, 139, 255, .48) !important;
+  box-shadow: 0 0 0 1px rgba(78,129,181,.12), 0 10px 30px rgba(0,0,0,.18), inset 0 1px 0 rgba(255,255,255,.10) !important;
+}
+
+
+/* V19 — Galactic Night: deep star field + Milky Way, with transparent glass UI */
+.editionChoices{flex-wrap:wrap!important;justify-content:center!important;}
+.editionChoice{flex:0 0 auto!important;}
+body.galactic-night{
+  background:
+    radial-gradient(ellipse at 48% 50%, rgba(77,91,150,.16) 0%, transparent 42%),
+    radial-gradient(ellipse at 82% 18%, rgba(70,52,112,.20) 0%, transparent 34%),
+    radial-gradient(ellipse at 12% 82%, rgba(34,57,91,.16) 0%, transparent 38%),
+    linear-gradient(150deg,#010103 0%,#05060d 42%,#10101a 68%,#020207 100%)!important;
+  background-attachment:fixed!important;
+  overflow-x:hidden;
+}
+body.galactic-night::before{
+  content:"";position:fixed;left:0;top:0;width:1px;height:1px;pointer-events:none;z-index:-1;
+  opacity:.98;border-radius:50%;background:rgba(255,255,255,.96);
+  box-shadow:
+    20vw 32vh 0px 0.6px rgba(205,220,255,.82),
+    26vw 13vh 1px 1.0px rgba(205,220,255,.82),
+    44vw 75vh 1px 0.5px rgba(205,220,255,.82),
+    26vw 31vh 0px 0.5px rgba(205,220,255,.82),
+    62vw 17vh 0px 0.7px rgba(235,225,255,.78),
+    37vw 38vh 0px 0.5px rgba(255,255,255,.92),
+    16vw 64vh 1px 0.5px rgba(255,255,255,.70),
+    93vw 30vh 1px 0.5px rgba(235,225,255,.78),
+    43vw 86vh 1px 1.0px rgba(255,255,255,.92),
+    21vw 60vh 0px 1.0px rgba(235,225,255,.78),
+    98vw 83vh 0px 1.0px rgba(205,220,255,.82),
+    52vw 58vh 1px 0.8px rgba(255,255,255,.92),
+    66vw 16vh 0px 0.5px rgba(255,255,255,.70),
+    92vw 16vh 0px 0.8px rgba(255,255,255,.70),
+    34vw 44vh 0px 1.0px rgba(205,220,255,.82),
+    18vw 46vh 1px 0.7px rgba(235,225,255,.78),
+    21vw 99vh 0px 0.8px rgba(235,225,255,.78),
+    60vw 57vh 1px 0.5px rgba(255,255,255,.92),
+    34vw 42vh 0px 0.7px rgba(255,255,255,.70),
+    89vw 3vh 0px 0.5px rgba(255,255,255,.92),
+    13vw 27vh 1px 1.0px rgba(255,255,255,.70),
+    36vw 79vh 1px 0.5px rgba(255,255,255,.70),
+    17vw 4vh 1px 0.5px rgba(235,225,255,.78),
+    46vw 17vh 1px 0.8px rgba(255,255,255,.70),
+    75vw 99vh 0px 0.6px rgba(255,255,255,.92),
+    82vw 84vh 0px 0.5px rgba(205,220,255,.82),
+    66vw 53vh 0px 0.7px rgba(255,255,255,.70),
+    34vw 34vh 1px 1.0px rgba(255,255,255,.92),
+    99vw 28vh 1px 0.5px rgba(255,255,255,.92),
+    58vw 17vh 1px 0.7px rgba(255,255,255,.70),
+    99vw 83vh 0px 0.5px rgba(205,220,255,.82),
+    14vw 35vh 0px 0.5px rgba(255,255,255,.92),
+    11vw 90vh 0px 0.5px rgba(255,255,255,.92),
+    1vw 71vh 1px 0.7px rgba(255,255,255,.70),
+    51vw 86vh 1px 0.5px rgba(235,225,255,.78),
+    40vw 24vh 0px 0.5px rgba(255,255,255,.92),
+    4vw 87vh 0px 0.5px rgba(205,220,255,.82),
+    28vw 22vh 1px 0.5px rgba(255,255,255,.70),
+    36vw 68vh 0px 1.0px rgba(235,225,255,.78),
+    51vw 1vh 0px 0.5px rgba(235,225,255,.78),
+    9vw 19vh 0px 0.6px rgba(255,255,255,.92),
+    91vw 29vh 1px 0.6px rgba(205,220,255,.82),
+    17vw 27vh 0px 0.8px rgba(255,255,255,.70),
+    55vw 22vh 1px 0.5px rgba(255,255,255,.70),
+    91vw 81vh 1px 0.5px rgba(235,225,255,.78),
+    11vw 31vh 1px 0.8px rgba(205,220,255,.82),
+    79vw 8vh 1px 0.5px rgba(255,255,255,.70),
+    84vw 36vh 0px 0.8px rgba(205,220,255,.82),
+    45vw 87vh 1px 1.0px rgba(205,220,255,.82),
+    12vw 45vh 0px 0.8px rgba(255,255,255,.70),
+    51vw 71vh 1px 0.8px rgba(235,225,255,.78),
+    93vw 53vh 1px 0.7px rgba(255,255,255,.70),
+    62vw 54vh 1px 0.5px rgba(205,220,255,.82),
+    78vw 49vh 1px 0.7px rgba(255,255,255,.70),
+    2vw 51vh 0px 1.0px rgba(255,255,255,.92),
+    29vw 88vh 0px 1.0px rgba(255,255,255,.70),
+    34vw 69vh 1px 0.5px rgba(235,225,255,.78),
+    63vw 69vh 0px 0.5px rgba(255,255,255,.92),
+    77vw 95vh 0px 1.0px rgba(205,220,255,.82),
+    15vw 16vh 1px 0.5px rgba(255,255,255,.92),
+    12vw 45vh 1px 0.5px rgba(235,225,255,.78),
+    94vw 18vh 0px 0.8px rgba(255,255,255,.92),
+    58vw 45vh 1px 0.5px rgba(255,255,255,.92),
+    72vw 56vh 0px 1.0px rgba(235,225,255,.78),
+    78vw 6vh 0px 1.0px rgba(205,220,255,.82),
+    84vw 58vh 1px 0.5px rgba(255,255,255,.70),
+    92vw 72vh 1px 0.8px rgba(255,255,255,.92),
+    47vw 65vh 1px 0.5px rgba(255,255,255,.92),
+    50vw 22vh 0px 0.5px rgba(255,255,255,.92),
+    5vw 78vh 0px 0.5px rgba(235,225,255,.78),
+    27vw 93vh 0px 1.0px rgba(205,220,255,.82),
+    24vw 50vh 0px 0.8px rgba(235,225,255,.78),
+    66vw 20vh 1px 0.6px rgba(205,220,255,.82),
+    67vw 55vh 1px 0.6px rgba(235,225,255,.78),
+    84vw 55vh 0px 0.5px rgba(255,255,255,.92),
+    21vw 77vh 1px 0.6px rgba(255,255,255,.92),
+    21vw 49vh 0px 0.7px rgba(235,225,255,.78),
+    14vw 1vh 0px 0.5px rgba(255,255,255,.70),
+    69vw 65vh 0px 0.5px rgba(255,255,255,.92),
+    80vw 17vh 0px 1.0px rgba(255,255,255,.70),
+    6vw 91vh 1px 1.0px rgba(235,225,255,.78),
+    91vw 81vh 0px 0.6px rgba(235,225,255,.78),
+    69vw 64vh 1px 0.5px rgba(205,220,255,.82),
+    39vw 33vh 0px 0.8px rgba(255,255,255,.92),
+    33vw 54vh 0px 1.0px rgba(255,255,255,.70),
+    19vw 83vh 1px 1.0px rgba(255,255,255,.92),
+    46vw 21vh 1px 0.8px rgba(235,225,255,.78),
+    61vw 75vh 0px 0.6px rgba(255,255,255,.70),
+    13vw 77vh 0px 0.5px rgba(205,220,255,.82),
+    38vw 52vh 1px 0.8px rgba(205,220,255,.82),
+    69vw 27vh 0px 0.7px rgba(255,255,255,.70),
+    55vw 99vh 0px 1.0px rgba(235,225,255,.78),
+    82vw 64vh 0px 0.8px rgba(205,220,255,.82),
+    53vw 65vh 1px 1.0px rgba(205,220,255,.82),
+    46vw 92vh 0px 1.0px rgba(205,220,255,.82),
+    27vw 71vh 1px 0.8px rgba(255,255,255,.92),
+    48vw 39vh 0px 0.5px rgba(205,220,255,.82),
+    80vw 47vh 0px 0.5px rgba(205,220,255,.82),
+    14vw 29vh 0px 0.5px rgba(235,225,255,.78),
+    77vw 33vh 0px 0.6px rgba(255,255,255,.92),
+    63vw 37vh 0px 0.6px rgba(255,255,255,.92),
+    49vw 76vh 0px 0.8px rgba(235,225,255,.78),
+    12vw 1vh 1px 0.8px rgba(235,225,255,.78),
+    35vw 34vh 0px 0.5px rgba(255,255,255,.92),
+    36vw 19vh 0px 0.5px rgba(255,255,255,.70),
+    90vw 90vh 1px 0.5px rgba(255,255,255,.92),
+    44vw 30vh 1px 0.7px rgba(255,255,255,.92),
+    19vw 32vh 0px 0.5px rgba(255,255,255,.70),
+    69vw 95vh 0px 0.5px rgba(255,255,255,.70),
+    86vw 6vh 0px 1.0px rgba(205,220,255,.82),
+    63vw 29vh 0px 0.5px rgba(205,220,255,.82),
+    81vw 91vh 0px 0.5px rgba(255,255,255,.70),
+    10vw 33vh 0px 0.7px rgba(255,255,255,.70),
+    75vw 82vh 0px 0.5px rgba(255,255,255,.70),
+    92vw 45vh 0px 1.0px rgba(235,225,255,.78),
+    93vw 36vh 0px 0.5px rgba(255,255,255,.92),
+    79vw 27vh 0px 0.7px rgba(255,255,255,.92),
+    18vw 90vh 1px 1.0px rgba(255,255,255,.92),
+    91vw 40vh 0px 0.8px rgba(235,225,255,.78),
+    67vw 35vh 0px 0.5px rgba(205,220,255,.82),
+    27vw 95vh 0px 0.5px rgba(255,255,255,.92),
+    82vw 22vh 0px 1.0px rgba(255,255,255,.70),
+    95vw 10vh 0px 0.5px rgba(205,220,255,.82),
+    64vw 15vh 1px 0.6px rgba(255,255,255,.70),
+    50vw 71vh 0px 1.0px rgba(235,225,255,.78),
+    68vw 94vh 0px 0.5px rgba(255,255,255,.70),
+    67vw 11vh 0px 0.5px rgba(205,220,255,.82),
+    48vw 33vh 0px 0.7px rgba(255,255,255,.92),
+    51vw 49vh 1px 0.5px rgba(235,225,255,.78),
+    97vw 6vh 0px 0.7px rgba(205,220,255,.82),
+    73vw 44vh 0px 0.5px rgba(255,255,255,.70),
+    55vw 21vh 1px 0.5px rgba(255,255,255,.70),
+    22vw 6vh 1px 0.5px rgba(235,225,255,.78),
+    11vw 34vh 0px 0.5px rgba(205,220,255,.82),
+    17vw 53vh 1px 0.7px rgba(255,255,255,.70),
+    52vw 90vh 1px 0.5px rgba(255,255,255,.70),
+    92vw 44vh 0px 0.5px rgba(255,255,255,.92),
+    70vw 63vh 0px 1.0px rgba(205,220,255,.82),
+    46vw 78vh 0px 0.5px rgba(235,225,255,.78),
+    80vw 50vh 1px 0.5px rgba(205,220,255,.82),
+    2vw 32vh 0px 0.5px rgba(235,225,255,.78),
+    18vw 24vh 0px 0.5px rgba(255,255,255,.70),
+    20vw 66vh 0px 0.5px rgba(255,255,255,.70),
+    59vw 99vh 1px 0.5px rgba(255,255,255,.92),
+    50vw 59vh 1px 0.7px rgba(255,255,255,.92),
+    50vw 22vh 0px 0.6px rgba(255,255,255,.92),
+    17vw 93vh 1px 0.5px rgba(235,225,255,.78),
+    58vw 78vh 1px 0.6px rgba(255,255,255,.70),
+    91vw 54vh 0px 0.7px rgba(255,255,255,.70),
+    56vw 70vh 1px 0.7px rgba(205,220,255,.82),
+    24vw 76vh 1px 0.5px rgba(255,255,255,.92),
+    26vw 47vh 0px 0.8px rgba(255,255,255,.70),
+    4vw 56vh 0px 0.5px rgba(255,255,255,.92),
+    57vw 55vh 1px 0.8px rgba(255,255,255,.92),
+    84vw 56vh 0px 0.5px rgba(235,225,255,.78),
+    51vw 58vh 1px 0.5px rgba(255,255,255,.70),
+    51vw 37vh 1px 0.5px rgba(205,220,255,.82),
+    9vw 17vh 0px 0.7px rgba(255,255,255,.70),
+    73vw 26vh 0px 1.0px rgba(235,225,255,.78),
+    60vw 58vh 1px 0.6px rgba(255,255,255,.70),
+    94vw 14vh 1px 0.5px rgba(205,220,255,.82),
+    39vw 92vh 0px 0.8px rgba(235,225,255,.78),
+    46vw 20vh 1px 0.7px rgba(255,255,255,.70),
+    5vw 40vh 0px 0.8px rgba(255,255,255,.70),
+    51vw 15vh 1px 0.6px rgba(205,220,255,.82),
+    13vw 77vh 0px 0.8px rgba(205,220,255,.82),
+    91vw 44vh 1px 0.7px rgba(255,255,255,.70),
+    45vw 93vh 0px 0.5px rgba(255,255,255,.92),
+    14vw 5vh 0px 0.7px rgba(235,225,255,.78),
+    16vw 47vh 0px 1.0px rgba(255,255,255,.92);
+}
+
+body.galactic-night::after{
+  content:"";position:fixed;pointer-events:none;z-index:-1;
+  width:150vw;height:36vh;left:-25vw;top:30vh;transform:rotate(-22deg);
+  background:
+    radial-gradient(ellipse at center,rgba(235,240,255,.16) 0%,rgba(135,160,220,.12) 22%,rgba(92,79,164,.12) 43%,rgba(25,28,63,.05) 63%,transparent 78%),
+    linear-gradient(90deg,transparent,rgba(113,104,194,.06),rgba(185,196,255,.08),rgba(72,92,160,.05),transparent);
+  filter:blur(5px);opacity:.95;
+}
+body.galactic-night .card,body.galactic-night .btn,body.galactic-night .input,body.galactic-night textarea,body.galactic-night .statCard,body.galactic-night .editionChoice,body.galactic-night .dateCard,body.galactic-night .navBtn{
+  background:linear-gradient(135deg,rgba(255,255,255,.035),rgba(80,100,155,.018))!important;
+  border:1px solid rgba(178,198,255,.36)!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.14),0 10px 28px rgba(0,0,0,.16),0 0 20px rgba(105,130,220,.055)!important;
+  backdrop-filter:blur(1px);-webkit-backdrop-filter:blur(1px);
+}
+body.galactic-night .btn:active,body.galactic-night button:active{transform:translateY(2px) scale(.985);box-shadow:inset 0 2px 10px rgba(0,0,0,.32)!important;}
+body.galactic-night .editionChoice.selected{border-color:rgba(210,220,255,.82)!important;box-shadow:0 0 0 1px rgba(145,125,255,.26),0 0 18px rgba(130,110,255,.18)!important;}
+body.galactic-night .cosmosEdition{background:linear-gradient(90deg,#dce8ff,#a9b8ff,#d9c5ff);-webkit-background-clip:text;background-clip:text;color:transparent;}
+
+
+/* v21 Black Hole Edition — Event Horizon + Obsidian UI */
+body.black-hole{
+  --bg:#020205;--card:#08080d;--ink:#f5f7ff;--soft:#c5cad8;--line:rgba(143,115,205,.42);
+  --primary:#a47cff;--primarySoft:rgba(110,75,190,.20);--green:#76e6ad;--greenSoft:rgba(36,135,87,.22);
+  --red:#ff9a98;--redSoft:rgba(166,49,61,.24);--yellow:#ffd47a;--yellowSoft:rgba(130,92,28,.22);
+  --purple:#c6a6ff;--purpleSoft:rgba(116,76,180,.24);
+  background:
+    radial-gradient(circle at 52% 30%,#000 0 8%,rgba(0,0,0,.98) 9%,rgba(22,8,42,.78) 16%,rgba(81,28,132,.42) 23%,rgba(33,76,142,.24) 31%,transparent 48%),
+    radial-gradient(ellipse at 54% 31%,transparent 0 13%,rgba(145,58,220,.18) 18%,rgba(66,126,232,.13) 27%,transparent 43%),
+    radial-gradient(circle at 18% 78%,rgba(42,71,128,.17),transparent 36%),
+    linear-gradient(150deg,#000000 0%,#03030a 42%,#0a0613 70%,#000000 100%)!important;
+  background-attachment:fixed!important;
+  overflow-x:hidden;
+}
+body.black-hole::before{
+  content:"";position:fixed;z-index:-1;pointer-events:none;left:50%;top:28%;width:min(62vw,430px);height:min(62vw,430px);transform:translate(-50%,-50%);border-radius:50%;
+  background:radial-gradient(circle,rgba(0,0,0,1) 0 38%,rgba(2,2,5,1) 39% 43%,rgba(108,39,173,.32) 46%,rgba(60,105,220,.24) 52%,rgba(126,50,190,.10) 61%,transparent 74%);
+  box-shadow:0 0 28px rgba(118,57,220,.20),0 0 72px rgba(40,112,255,.13),inset 0 0 45px #000;
+}
+body.black-hole::after{
+  content:"";position:fixed;z-index:-1;pointer-events:none;left:-22vw;top:17vh;width:145vw;height:27vh;transform:rotate(-16deg);
+  background:radial-gradient(ellipse at center,transparent 0 20%,rgba(20,7,35,.18) 27%,rgba(114,41,182,.20) 38%,rgba(54,111,220,.17) 49%,rgba(142,74,215,.10) 58%,transparent 73%);
+  filter:blur(8px);opacity:.95;
+}
+body.black-hole .app,body.black-hole .header,body.black-hole .nav{background:transparent!important;}
+body.black-hole .card,body.black-hole .datebar,body.black-hole .editionChoice,body.black-hole .modalBox,body.black-hole .appDialog,body.black-hole .app-alert-box,body.black-hole .wheelTimeDialog,body.black-hole .activationCard{
+  background:linear-gradient(135deg,rgba(8,8,15,.78),rgba(19,10,31,.56))!important;
+  border:1px solid rgba(160,126,236,.48)!important;
+  box-shadow:inset 0 1px 0 rgba(225,215,255,.12),0 10px 30px rgba(0,0,0,.48),0 0 22px rgba(112,63,210,.08)!important;
+}
+body.black-hole .btn,body.black-hole .saveAttendance,body.black-hole .holiday,body.black-hole .scheduleManage,body.black-hole .navBtn,body.black-hole .iconbtn,body.black-hole .filter,body.black-hole .status,body.black-hole .editionChoice{
+  color:#f8f9ff!important;
+  background:linear-gradient(145deg,rgba(18,12,30,.88),rgba(7,8,15,.92))!important;
+  border:1px solid rgba(164,124,255,.55)!important;
+  box-shadow:inset 0 1px 0 rgba(240,235,255,.14),0 5px 0 rgba(46,25,75,.78),0 12px 24px rgba(0,0,0,.42)!important;
+}
+body.black-hole .input,body.black-hole textarea,body.black-hole select,body.black-hole .timeWheelTrigger,body.black-hole .activationInput{
+  background:rgba(2,3,8,.82)!important;color:#fff!important;border-color:rgba(157,129,225,.52)!important;
+  box-shadow:inset 0 2px 12px rgba(0,0,0,.5),0 0 12px rgba(95,70,180,.06)!important;
+}
+body.black-hole .btn:active,body.black-hole button:active{transform:translateY(3px) scale(.985);box-shadow:inset 0 3px 14px rgba(0,0,0,.75)!important;}
+body.black-hole .editionChoice.selected{border-color:#d3baff!important;box-shadow:0 0 0 1px rgba(189,152,255,.30),0 0 24px rgba(129,74,232,.28),inset 0 1px 0 rgba(255,255,255,.20)!important;}
+body.black-hole .brand,body.black-hole b,body.black-hole strong,body.black-hole .label,body.black-hole .sessionName,body.black-hole .subjectName,body.black-hole .metric b,body.black-hole .statsHero{color:#f7f8ff!important;}
+body.black-hole .small,body.black-hole .sub,body.black-hole .soft,body.black-hole .progressText,body.black-hole .sessionTime,body.black-hole .subjectMeta,body.black-hole .metric span{color:#d3d8e5!important;opacity:1!important;}
+body.black-hole .cosmosEdition{background:linear-gradient(90deg,#f3edff,#c9a8ff,#7bb2ff,#f3edff);-webkit-background-clip:text;background-clip:text;color:transparent!important;text-shadow:0 0 18px rgba(145,100,255,.18);}
+
+/* v22 Black Hole Edition — restore attendance and statistics semantic colours */
+body.black-hole .status.green{color:#b9ffd7!important;background:linear-gradient(145deg,rgba(18,80,52,.88),rgba(5,24,17,.94))!important;border-color:rgba(118,230,173,.78)!important;box-shadow:inset 0 1px 0 rgba(220,255,235,.18),0 5px 0 rgba(10,52,33,.82),0 0 16px rgba(76,225,145,.18)!important;}
+body.black-hole .status.red{color:#ffd0d0!important;background:linear-gradient(145deg,rgba(92,29,38,.90),rgba(30,7,12,.95))!important;border-color:rgba(255,154,152,.78)!important;box-shadow:inset 0 1px 0 rgba(255,225,225,.14),0 5px 0 rgba(65,16,25,.82),0 0 16px rgba(255,104,120,.15)!important;}
+body.black-hole .status.gray{color:#f0f3f8!important;background:linear-gradient(145deg,rgba(75,81,94,.90),rgba(22,25,33,.95))!important;border-color:rgba(185,192,205,.70)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.14),0 5px 0 rgba(35,39,48,.86),0 0 14px rgba(180,190,205,.10)!important;}
+body.black-hole .status.green.active{background:linear-gradient(145deg,rgba(31,125,78,.98),rgba(8,48,29,.98))!important;box-shadow:inset 0 2px 12px rgba(0,0,0,.35),0 0 22px rgba(118,230,173,.35)!important;}
+body.black-hole .status.red.active{background:linear-gradient(145deg,rgba(145,45,56,.98),rgba(55,9,17,.98))!important;box-shadow:inset 0 2px 12px rgba(0,0,0,.35),0 0 22px rgba(255,110,120,.30)!important;}
+body.black-hole .status.gray.active{background:linear-gradient(145deg,rgba(102,110,125,.98),rgba(35,39,49,.98))!important;box-shadow:inset 0 2px 12px rgba(0,0,0,.35),0 0 20px rgba(205,212,225,.20)!important;}
+body.black-hole .metric.presentMetric b,body.black-hole .metric.presentMetric span{color:#76e6ad!important;}
+body.black-hole .metric.absentMetric b,body.black-hole .metric.absentMetric span{color:#ff9a98!important;}
+body.black-hole .metric.pendingMetric b,body.black-hole .metric.pendingMetric span{color:#ffd47a!important;}
+body.black-hole .metric.totalMetric b,body.black-hole .metric.totalMetric span{color:#7bb2ff!important;}
+body.black-hole .metric.presentMetric{border-color:rgba(118,230,173,.62)!important;background:linear-gradient(145deg,rgba(12,57,37,.70),rgba(5,16,13,.62))!important;}
+body.black-hole .metric.absentMetric{border-color:rgba(255,154,152,.62)!important;background:linear-gradient(145deg,rgba(68,20,28,.70),rgba(18,5,9,.62))!important;}
+body.black-hole .metric.pendingMetric{border-color:rgba(255,212,122,.62)!important;background:linear-gradient(145deg,rgba(72,49,15,.68),rgba(20,13,3,.62))!important;}
+body.black-hole .metric.totalMetric{border-color:rgba(123,178,255,.62)!important;background:linear-gradient(145deg,rgba(18,47,83,.70),rgba(4,11,23,.62))!important;}
+
+/* v23 — stronger tactile 3D attendance controls */
+.statusRow .status{
+  transform:translateY(-3px);
+  box-shadow:0 7px 0 rgba(0,0,0,.42),0 13px 24px rgba(0,0,0,.28),inset 0 1px 0 rgba(255,255,255,.22);
+  transition:transform .11s ease,box-shadow .11s ease,filter .11s ease;
+  will-change:transform;
+}
+.statusRow .status.green{box-shadow:0 7px 0 rgba(13,92,55,.9),0 13px 24px rgba(0,0,0,.28),inset 0 1px 0 rgba(255,255,255,.24)}
+.statusRow .status.red{box-shadow:0 7px 0 rgba(118,35,42,.9),0 13px 24px rgba(0,0,0,.28),inset 0 1px 0 rgba(255,255,255,.22)}
+.statusRow .status.gray{box-shadow:0 7px 0 rgba(70,76,88,.95),0 13px 24px rgba(0,0,0,.28),inset 0 1px 0 rgba(255,255,255,.18)}
+.statusRow .status:hover:not(:disabled){transform:translateY(-4px);filter:brightness(1.08)}
+.statusRow .status:active:not(:disabled){transform:translateY(3px);box-shadow:0 2px 0 rgba(0,0,0,.45),0 5px 10px rgba(0,0,0,.2),inset 0 2px 7px rgba(0,0,0,.2)}
+.statusRow .status.active{transform:translateY(1px);filter:brightness(1.12)}
+
+/* v24 — explicit tactile press system for attendance choices */
+.statusRow{padding:4px 0 10px;}
+.statusRow .status{
+  position:relative!important;
+  top:0!important;
+  transform:translateY(-4px)!important;
+  border-width:1px!important;
+  min-height:58px!important;
+  transition:transform 80ms cubic-bezier(.2,.8,.2,1),box-shadow 80ms cubic-bezier(.2,.8,.2,1),filter 80ms ease!important;
+}
+.statusRow .status.green{box-shadow:0 8px 0 #075a35,0 14px 24px rgba(0,0,0,.34),inset 0 1px 0 rgba(255,255,255,.25)!important;}
+.statusRow .status.red{box-shadow:0 8px 0 #74202a,0 14px 24px rgba(0,0,0,.34),inset 0 1px 0 rgba(255,255,255,.23)!important;}
+.statusRow .status.gray{box-shadow:0 8px 0 #454b58,0 14px 24px rgba(0,0,0,.34),inset 0 1px 0 rgba(255,255,255,.18)!important;}
+.statusRow .status.is-pressing,.statusRow .status:active:not(:disabled){
+  transform:translateY(4px)!important;
+  filter:brightness(.98)!important;
+}
+.statusRow .status.green.is-pressing,.statusRow .status.green:active:not(:disabled){box-shadow:0 1px 0 #075a35,0 4px 9px rgba(0,0,0,.28),inset 0 3px 8px rgba(0,0,0,.18)!important;}
+.statusRow .status.red.is-pressing,.statusRow .status.red:active:not(:disabled){box-shadow:0 1px 0 #74202a,0 4px 9px rgba(0,0,0,.28),inset 0 3px 8px rgba(0,0,0,.18)!important;}
+.statusRow .status.gray.is-pressing,.statusRow .status.gray:active:not(:disabled){box-shadow:0 1px 0 #454b58,0 4px 9px rgba(0,0,0,.28),inset 0 3px 8px rgba(0,0,0,.18)!important;}
+
+/* v25 Black Hole Edition — high-visibility attendance state and statistics colours */
+body.black-hole .statusRow .status.green,
+body.black-hole .statusRow .status.green.active{
+  color:#e9fff2!important;
+  background:linear-gradient(145deg,#187a4b,#082b1b)!important;
+  border:2px solid #55e39b!important;
+  text-shadow:0 1px 2px rgba(0,0,0,.7)!important;
+}
+body.black-hole .statusRow .status.red,
+body.black-hole .statusRow .status.red.active{
+  color:#fff0f0!important;
+  background:linear-gradient(145deg,#a83243,#3a0b14)!important;
+  border:2px solid #ff7885!important;
+  text-shadow:0 1px 2px rgba(0,0,0,.7)!important;
+}
+body.black-hole .statusRow .status.gray,
+body.black-hole .statusRow .status.gray.active{
+  color:#ffffff!important;
+  background:linear-gradient(145deg,#737b89,#2b3039)!important;
+  border:2px solid #c3cad5!important;
+  text-shadow:0 1px 2px rgba(0,0,0,.7)!important;
+}
+
+/* Keep selected attendance unmistakably colour-coded */
+body.black-hole .statusRow .status.green.active{box-shadow:0 8px 0 #075a35,0 0 24px rgba(85,227,155,.48),inset 0 1px 0 rgba(255,255,255,.26)!important;}
+body.black-hole .statusRow .status.red.active{box-shadow:0 8px 0 #74202a,0 0 24px rgba(255,120,133,.45),inset 0 1px 0 rgba(255,255,255,.24)!important;}
+body.black-hole .statusRow .status.gray.active{box-shadow:0 8px 0 #454b58,0 0 22px rgba(195,202,213,.32),inset 0 1px 0 rgba(255,255,255,.22)!important;}
+
+/* Statistics numbers and labels retain their semantic colours in Black Hole Edition */
+body.black-hole .grid4 .presentMetric > b,
+body.black-hole .grid4 .presentMetric > span{color:#55e39b!important;text-shadow:0 0 10px rgba(85,227,155,.28)!important;}
+body.black-hole .grid4 .absentMetric > b,
+body.black-hole .grid4 .absentMetric > span{color:#ff7885!important;text-shadow:0 0 10px rgba(255,120,133,.25)!important;}
+body.black-hole .grid4 .pendingMetric > b,
+body.black-hole .grid4 .pendingMetric > span{color:#ffd166!important;text-shadow:0 0 10px rgba(255,209,102,.22)!important;}
+body.black-hole .grid4 .totalMetric > b,
+body.black-hole .grid4 .totalMetric > span{color:#72a7ff!important;text-shadow:0 0 10px rgba(114,167,255,.25)!important;}
+
+/* v26 Black Hole Edition — neutral before marking, semantic colour only after selection */
+body.black-hole .statusRow .status.green:not(.active),
+body.black-hole .statusRow .status.red:not(.active),
+body.black-hole .statusRow .status.gray:not(.active){
+  color:#f8f9ff!important;
+  background:linear-gradient(145deg,rgba(18,12,30,.94),rgba(7,8,15,.97))!important;
+  border:1px solid rgba(164,124,255,.55)!important;
+  text-shadow:none!important;
+  box-shadow:0 8px 0 rgba(46,25,75,.82),0 14px 24px rgba(0,0,0,.40),inset 0 1px 0 rgba(240,235,255,.14)!important;
+}
+body.black-hole .statusRow .status.green.active{
+  color:#e9fff2!important;
+  background:linear-gradient(145deg,#1b8b56,#08321f)!important;
+  border:2px solid #55e39b!important;
+  box-shadow:0 8px 0 #075a35,0 0 24px rgba(85,227,155,.48),inset 0 1px 0 rgba(255,255,255,.26)!important;
+}
+body.black-hole .statusRow .status.red.active{
+  color:#fff0f0!important;
+  background:linear-gradient(145deg,#b43a4d,#400b16)!important;
+  border:2px solid #ff7885!important;
+  box-shadow:0 8px 0 #74202a,0 0 24px rgba(255,120,133,.45),inset 0 1px 0 rgba(255,255,255,.24)!important;
+}
+body.black-hole .statusRow .status.gray.active{
+  color:#fff!important;
+  background:linear-gradient(145deg,#7b8493,#303641)!important;
+  border:2px solid #c3cad5!important;
+  box-shadow:0 8px 0 #454b58,0 0 22px rgba(195,202,213,.32),inset 0 1px 0 rgba(255,255,255,.22)!important;
+}
+
+/* v27 — Black Hole attendance buttons: only selected buttons stay raised */
+body.black-hole .statusRow .status.green:not(.active),
+body.black-hole .statusRow .status.red:not(.active),
+body.black-hole .statusRow .status.gray:not(.active){
+  transform:none!important;
+  box-shadow:0 2px 8px rgba(0,0,0,.26),inset 0 1px 0 rgba(240,235,255,.10)!important;
+}
+body.black-hole .statusRow .status.green:not(.active):hover:not(:disabled),
+body.black-hole .statusRow .status.red:not(.active):hover:not(:disabled),
+body.black-hole .statusRow .status.gray:not(.active):hover:not(:disabled){
+  transform:none!important;
+}
+body.black-hole .statusRow .status.green.active,
+body.black-hole .statusRow .status.red.active,
+body.black-hole .statusRow .status.gray.active{
+  transform:translateY(-4px)!important;
+}
+body.black-hole .statusRow .status.green.active{box-shadow:0 8px 0 #075a35,0 14px 24px rgba(0,0,0,.34),0 0 24px rgba(85,227,155,.48),inset 0 1px 0 rgba(255,255,255,.26)!important;}
+body.black-hole .statusRow .status.red.active{box-shadow:0 8px 0 #74202a,0 14px 24px rgba(0,0,0,.34),0 0 24px rgba(255,120,133,.45),inset 0 1px 0 rgba(255,255,255,.24)!important;}
+body.black-hole .statusRow .status.gray.active{box-shadow:0 8px 0 #454b58,0 14px 24px rgba(0,0,0,.34),0 0 22px rgba(195,202,213,.32),inset 0 1px 0 rgba(255,255,255,.22)!important;}
+
+/* v28: Attendance status buttons — all editions.
+   Unmarked buttons stay flat; only the selected status is raised. */
+body:not(.black-hole) .statusRow .status:not(.active){
+  transform:none !important;
+  box-shadow:none !important;
+}
+body:not(.black-hole) .statusRow .status:not(.active):hover:not(:disabled){
+  transform:none !important;
+  box-shadow:none !important;
+  filter:none !important;
+}
+body:not(.black-hole) .statusRow .status.active{
+  transform:translateY(-4px) !important;
+}
+body:not(.black-hole) .statusRow .status.green.active{
+  box-shadow:0 8px 0 color-mix(in srgb,var(--green) 58%,#000),0 14px 24px rgba(0,0,0,.26),inset 0 1px 0 rgba(255,255,255,.24) !important;
+}
+body:not(.black-hole) .statusRow .status.red.active{
+  box-shadow:0 8px 0 color-mix(in srgb,var(--red) 58%,#000),0 14px 24px rgba(0,0,0,.26),inset 0 1px 0 rgba(255,255,255,.22) !important;
+}
+body:not(.black-hole) .statusRow .status.gray.active{
+  box-shadow:0 8px 0 #454b58,0 14px 24px rgba(0,0,0,.26),inset 0 1px 0 rgba(255,255,255,.18) !important;
+}
+/* During touch, every button still gives immediate press feedback. */
+body:not(.black-hole) .statusRow .status:active:not(:disabled),
+body:not(.black-hole) .statusRow .status.is-pressing{
+  transform:translateY(3px) !important;
+}
+
+/* v29 — FINAL attendance button elevation rule for EVERY edition.
+   Only the selected attendance status may remain raised. */
+body:not(.black-hole) .session .statusRow > button.status:not(.active),
+body:not(.black-hole) .statusRow > button.status:not(.active){
+  transform:translateY(0) !important;
+  box-shadow:none !important;
+  filter:none !important;
+}
+body:not(.black-hole) .session .statusRow > button.status:not(.active):hover:not(:disabled),
+body:not(.black-hole) .statusRow > button.status:not(.active):focus:not(:disabled){
+  transform:translateY(0) !important;
+  box-shadow:none !important;
+  filter:none !important;
+}
+/* The selected button alone gets the persistent raised depth. */
+body:not(.black-hole) .session .statusRow > button.status.active{
+  transform:translateY(-4px) !important;
+}
+/* Touch feedback is temporary only; after release an unmarked button is flat again. */
+body:not(.black-hole) .session .statusRow > button.status:not(.active):active,
+body:not(.black-hole) .session .statusRow > button.status:not(.active).is-pressing{
+  transform:translateY(2px) !important;
+  box-shadow:none !important;
+}
+
+/* v30 — definitive attendance button state across ALL editions.
+   Neutral buttons must never keep the coloured 3D base. */
+.statusRow > button.status.green:not(.active),
+.statusRow > button.status.red:not(.active),
+.statusRow > button.status.gray:not(.active){
+  transform:translateY(0) !important;
+  box-shadow:none !important;
+  filter:none !important;
+}
+.statusRow > button.status.green:not(.active):hover:not(:disabled),
+.statusRow > button.status.red:not(.active):hover:not(:disabled),
+.statusRow > button.status.gray:not(.active):hover:not(:disabled),
+.statusRow > button.status.green:not(.active):focus,
+.statusRow > button.status.red:not(.active):focus,
+.statusRow > button.status.gray:not(.active):focus{
+  transform:translateY(0) !important;
+  box-shadow:none !important;
+  filter:none !important;
+}
+/* Only the selected state owns the permanent coloured raised base. */
+.statusRow > button.status.green.active{
+  transform:translateY(-4px) !important;
+  box-shadow:0 8px 0 color-mix(in srgb,var(--green) 58%,#000),0 14px 24px rgba(0,0,0,.26),inset 0 1px 0 rgba(255,255,255,.24) !important;
+}
+.statusRow > button.status.red.active{
+  transform:translateY(-4px) !important;
+  box-shadow:0 8px 0 color-mix(in srgb,var(--red) 58%,#000),0 14px 24px rgba(0,0,0,.26),inset 0 1px 0 rgba(255,255,255,.22) !important;
+}
+.statusRow > button.status.gray.active{
+  transform:translateY(-4px) !important;
+  box-shadow:0 8px 0 #454b58,0 14px 24px rgba(0,0,0,.26),inset 0 1px 0 rgba(255,255,255,.18) !important;
+}
+/* Black Hole keeps its own stronger Event Horizon colours, but follows the same flat/raised rule. */
+body.black-hole .statusRow > button.status.green:not(.active),
+body.black-hole .statusRow > button.status.red:not(.active),
+body.black-hole .statusRow > button.status.gray:not(.active){
+  transform:translateY(0) !important;
+  box-shadow:0 2px 8px rgba(0,0,0,.26),inset 0 1px 0 rgba(240,235,255,.10) !important;
+}
+body.black-hole .statusRow > button.status.green.active,
+body.black-hole .statusRow > button.status.red.active,
+body.black-hole .statusRow > button.status.gray.active{transform:translateY(-4px) !important;}
+/* Touch feedback is temporary; it never becomes a persistent raised state unless selected. */
+.statusRow > button.status:not(.active):active,
+.statusRow > button.status:not(.active).is-pressing{transform:translateY(2px) !important;}

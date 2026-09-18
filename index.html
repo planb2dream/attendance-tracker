@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="preboot">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
@@ -7,9 +7,27 @@
 <meta name="theme-color" content="#2A5C54">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon-192.png">
+<style>
+html,body{margin:0;min-height:100%;background:#f4f6f5}
+html[data-theme="dark"],html[data-theme="dark"] body{background:#121817}
+html.preboot body{visibility:hidden}
+</style>
+<script>
+(function(){
+  try{
+    const raw=localStorage.getItem("attendance-tracker-data");
+    const settings=raw?JSON.parse(raw).settings||{}:{};
+    let theme=settings.theme;
+    if(theme!=="light"&&theme!=="dark"&&theme!=="system")theme="system";
+    const dark=theme==="dark"||(theme==="system"&&window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches);
+    document.documentElement.setAttribute("data-theme",dark?"dark":"light");
+  }catch(e){document.documentElement.setAttribute("data-theme","light")}
+})();
+</script>
 <link rel="stylesheet" href="styles.css">
 </head>
-<body><div id="app"></div>
+<body>
+<div id="app"></div>
 <script src="app.js"></script>
 <div id="appAlertOverlay" class="app-alert-overlay" role="dialog" aria-modal="true" aria-labelledby="appAlertTitle">
   <div class="app-alert-box">
@@ -18,7 +36,6 @@
     <div class="app-alert-actions"><button id="appAlertOk" class="app-alert-ok" type="button" onclick="closeAppAlert()">OK</button></div>
   </div>
 </div>
-
 <div id="appDialogOverlay" class="appDialogOverlay" aria-hidden="true">
   <div class="appDialog" role="dialog" aria-modal="true" aria-labelledby="appDialogTitle">
     <h2 id="appDialogTitle" class="appDialogTitle">Confirmation</h2>
@@ -29,7 +46,6 @@
     </div>
   </div>
 </div>
-
 <div id="activationOverlay" class="activationOverlay" role="dialog" aria-modal="true" aria-labelledby="activationTitle">
   <div class="activationCard">
     <div class="activationIcon">🔒</div>
@@ -40,5 +56,5 @@
     <div id="activationError" class="activationError"></div>
   </div>
 </div>
-
-</body></html>
+</body>
+</html>

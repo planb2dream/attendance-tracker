@@ -13,10 +13,99 @@ const DAYS=["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturda
 function clone(x){return JSON.parse(JSON.stringify(x))}function pad(n){return String(n).padStart(2,"0")}function key(d){return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate())}function parseKey(k){let p=k.split("-").map(Number);return new Date(p[0],p[1]-1,p[2])}function add(d,n){let x=new Date(d);x.setDate(x.getDate()+n);return x}function today(){let d=new Date();d.setHours(0,0,0,0);return d}function fmt(d){return d.toLocaleDateString("en-GB",{day:"2-digit",month:"short",year:"numeric"})}function monthFmt(d){return d.toLocaleDateString("en-GB",{month:"long",year:"numeric"})}function time(s){let[h,m]=s.split(":").map(Number),ap=h>=12?"PM":"AM";h=h%12||12;return h+":"+pad(m)+" "+ap}function esc(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]))}
 function defaultState(){return {status:{},records:{},holidays:{},notes:{},overrides:{},extraClasses:{},tab:"log",viewDate:key(today()),calendarMonth:key(new Date(today().getFullYear(),today().getMonth(),1)),statsFilter:"all",settings:{name:"Sharad Sourav",course:"3rd Prof Part-II",required:75,unlockHour:6,theme:"light",edition:"earth-day",rollNumber:"",rollLocked:false,schedule:clone(DEFAULT_SCHEDULE)}}}
 let state=defaultState();
+const ADMIN_CLOUD_SYNC_KEY="attendance-tracker-admin-last-cloud-sync-v1";
+function readAdminLastSync(){try{const v=localStorage.getItem(ADMIN_CLOUD_SYNC_KEY);if(!v)return null;const d=new Date(v);return Number.isNaN(d.getTime())?null:d}catch(e){return null}}
+let cloudSession={user:null,admin:false,ready:!!window.AttendanceCloud,syncing:false,lastSync:null,error:""};
+const CLOUD_PENDING_KEY="attendance-tracker-cloud-pending";
+const CLOUD_MIGRATION_KEY="attendance-tracker-cloud-migration-v105";
+const CLOUD_SYNC_INTERVAL=60000;
+function cloudErrorText(e){const c=e?.code||"unknown";const op=e?.operation?" ["+e.operation+"]":"";const msg=e?.message||"Cloud sync failed";return c+op+": "+msg;}
+let cloudSyncChain=Promise.resolve();
+let adminCache={students:[],selected:null,days:[],studentMonth:"",studentFilter:"all"};
 function applyEveningLabels(){let changed=false;Object.values(state.settings.schedule||{}).forEach(a=>(a||[]).forEach(s=>{let h=Number(String(s[0]).slice(0,2));if(h>=15&&!/\s\(Evening\)$/.test(s[2])){s[2]=s[2]+" (Evening)";changed=true}}));return changed}
 function migrateLegacyEvening(v){if(typeof v==="string")return v.replace(/\(ALC\)/g,"(Evening)");if(Array.isArray(v))return v.map(migrateLegacyEvening);if(v&&typeof v==="object"){Object.keys(v).forEach(k=>v[k]=migrateLegacyEvening(v[k]));}return v}
 function load(){try{let raw=localStorage.getItem(KEY);if(!raw){for(const legacyKey of LEGACY_KEYS){raw=localStorage.getItem(legacyKey);if(raw)break}}if(raw){let parsed=JSON.parse(raw),defs=defaultState();state={...defs,...parsed,status:{...defs.status,...(parsed.status||{})},records:{...defs.records,...(parsed.records||{})},holidays:{...defs.holidays,...(parsed.holidays||{})},notes:{...defs.notes,...(parsed.notes||{})},overrides:{...defs.overrides,...(parsed.overrides||{})},extraClasses:{...defs.extraClasses,...(parsed.extraClasses||{})},settings:{...defs.settings,...(parsed.settings||{})}};migrateLegacyEvening(state);state.settings.unlockHour=6;applyEveningLabels();localStorage.setItem(KEY,JSON.stringify(state));return}}catch(e){console.warn(e)}state=defaultState()}
 function save(){const data=JSON.stringify(state);localStorage.setItem(KEY,data)}
+function buildCloudSessionSnapshots(sourceState=state){
+  const src=sourceState||state, out={};
+  const dates=new Set();
+  Object.keys(src.status||{}).forEach(k=>dates.add(k.slice(0,10)));
+  Object.keys(src.records||{}).forEach(k=>dates.add(k.slice(0,10)));
+  Object.keys(src.notes||{}).forEach(d=>dates.add(d));
+  Object.keys(src.holidays||{}).forEach(d=>dates.add(d));
+  Object.keys(src.overrides||{}).forEach(d=>dates.add(d));
+  Object.keys(src.extraClasses||{}).forEach(d=>dates.add(d));
+  const prev=state;
+  try{
+    if(src!==state)state=src;
+    dates.forEach(date=>{out[date]=sessionsFor(parseKey(date)).map((x,i)=>({index:i,start:x[0],end:x[1],subject:x[2],scheduledSubject:x._scheduled||x[2],extra:!!x[3]}));});
+  }finally{state=prev;}
+  return out;
+}
+function cloudAvailable(){return !!(window.AttendanceCloud&&cloudSession.user&&!cloudSession.admin)}
+function cloudQueue(label,date){
+  if(!cloudAvailable())return Promise.resolve();
+  localStorage.setItem(CLOUD_PENDING_KEY,"1");
+  cloudSession.error=""; updateCloudStatus();
+  cloudSyncChain=cloudSyncChain.then(async()=>{
+    if(!cloudAvailable())return;
+    cloudSession.syncing=true; updateCloudStatus();
+    try{
+      if(date){
+        const d=parseKey(date), sessions=sessionsFor(d).map((x,i)=>({index:i,start:x[0],end:x[1],subject:x[2],scheduledSubject:x._scheduled||x[2],extra:!!x[3]}));
+        await window.AttendanceCloud.syncDay(cloudSession.user.uid,date,clone(state),sessions);
+      }else{
+        await window.AttendanceCloud.syncProfile(cloudSession.user.uid,clone(state),cloudSession.user);
+      }
+      cloudSession.lastSync=new Date();
+      cloudSession.error="";
+    }catch(e){cloudSession.error=cloudErrorText(e);throw e}
+    finally{cloudSession.syncing=false;updateCloudStatus();}
+  }).then(()=>{localStorage.removeItem(CLOUD_PENDING_KEY);updateCloudStatus()}).catch(()=>{updateCloudStatus()});
+  return cloudSyncChain;
+}
+function cloudQueueFull(label){
+  if(!cloudSession.user||!window.AttendanceCloud)return Promise.resolve();
+  localStorage.setItem(CLOUD_PENDING_KEY,"1");
+  cloudSession.error=""; cloudSession.syncing=true; updateCloudStatus();
+  cloudSyncChain=cloudSyncChain.then(async()=>{
+    if(!cloudSession.user||!window.AttendanceCloud)return;
+    cloudSession.syncing=true; cloudSession.error=""; updateCloudStatus();
+    try{
+      if(cloudSession.admin){
+        // Admin accounts do not write student data; a manual/automatic admin sync
+        // refreshes the authoritative student list and records the successful cloud fetch.
+        adminCache.students=await window.AttendanceCloud.listStudents();
+        cloudSession.lastSync=new Date();
+        localStorage.setItem(ADMIN_CLOUD_SYNC_KEY,cloudSession.lastSync.toISOString());
+      }else{
+        await window.AttendanceCloud.syncFullState(cloudSession.user.uid,clone(state),cloudSession.user,buildCloudSessionSnapshots());
+        cloudSession.lastSync=new Date();
+      }
+      cloudSession.error="";
+      localStorage.removeItem(CLOUD_PENDING_KEY);
+    }catch(e){
+      cloudSession.error=cloudErrorText(e);
+      throw e;
+    }finally{
+      cloudSession.syncing=false;
+      updateCloudStatus();
+      render();
+    }
+  }).catch(()=>{updateCloudStatus();render()});
+  return cloudSyncChain;
+}
+
+function updateCloudStatus(){
+  let text="",cls="syncStatus syncStatusBad";
+  if(cloudSession.syncing){text="✓ Syncing…";cls="syncStatus syncStatusGood";}
+  else if(cloudSession.error){text="✕ Sync failed · "+cloudSession.error;cls="syncStatus syncStatusBad";}
+  else if(cloudSession.user&&cloudSession.lastSync){text="✓ Last synced · "+cloudSession.lastSync.toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"});cls="syncStatus syncStatusGood";}
+  else if(cloudSession.user){text="✕ Sync status unavailable";cls="syncStatus syncStatusBad";}
+  else{text="✕ Not signed in";cls="syncStatus syncStatusBad";}
+  const els=[document.getElementById("cloudStatusText"),document.getElementById("adminSyncStatusText")].filter(Boolean);
+  els.forEach(el=>{el.textContent=text;el.className="small "+cls;});
+}
 function hasSavedRoll(){return !!(state.settings&&state.settings.rollLocked&&/^(?:[1-9]|[1-9][0-9]|100)$/.test(String(state.settings.rollNumber||"")))}
 function requireSavedRoll(){if(hasSavedRoll())return true;showAppAlert('Please save your roll number in Settings before marking or saving attendance.', '⚠️ Save Roll Number First');return false}
 function applyTheme(){const ed=(state.settings&&state.settings.edition)||"earth-day";document.body.classList.toggle("nebula-glass",ed==="nebula-glass");document.body.classList.toggle("galactic-night",ed==="galactic-night");document.body.classList.toggle("black-hole",ed==="black-hole");document.body.classList.toggle("heart-nebula",ed==="heart-nebula");document.body.classList.toggle("roshni",ed==="roshni");document.body.classList.toggle("opal-dream",ed==="opal-dream");document.body.classList.toggle("celestial-glass",ed==="celestial-glass");document.body.classList.toggle("outer-space-3d",ed==="outer-space-3d");document.body.classList.toggle("photon-3d",ed==="photon-3d");document.body.setAttribute("data-edition",ed);
@@ -62,9 +151,21 @@ function statusOf(dateKey,i){return state.status[sessionKey(dateKey,i)]}
 function draftValue(k){return Object.prototype.hasOwnProperty.call(draftStatus,k)?draftStatus[k]:state.status[k]}
 function ensureDraft(dk){if(draftDate!==dk){draftDate=dk;draftStatus={}}}
 function setStatus(k,v){if(!requireSavedRoll())return;let dk=k.slice(0,10),i=Number(k.slice(dk.length+1));if(!attendanceEditable(dk,i))return;ensureDraft(dk);let current=draftValue(k);if(current===v){draftStatus[k]=null}else{draftStatus[k]=v}document.querySelectorAll(`[data-act="status"][data-k="${k}"]`).forEach(btn=>{btn.classList.toggle("active",draftValue(k)===btn.dataset.v)});let d=parseKey(state.viewDate);if(key(d)===dk){let ss=sessionsFor(d),marked=0;ss.forEach((_,n)=>{if(draftValue(sessionKey(dk,n)))marked++});let txt=document.querySelector(".progressText");let bar=document.querySelector(".progress > i");if(txt)txt.textContent=marked+" / "+ss.length+" marked";if(bar)bar.style.width=(ss.length?marked/ss.length*100:0)+"%"}}
-async function saveAttendance(dk){if(!requireSavedRoll())return;if(!editable(dk))return;ensureDraft(dk);let changes=Object.keys(draftStatus);if(!changes.length){toast("No attendance changes to save");return}if(!await appConfirm("Today remains editable until midnight. For past dates, only classes with a currently saved status are locked; a class cleared and saved as unmarked remains available for one-time past entry.","Save attendance?"))return;state.records=state.records||{};let ss=sessionsFor(parseKey(dk));changes.forEach(k=>{let v=draftStatus[k],i=Number(k.slice(dk.length+1));if(v){state.status[k]=v;let x=ss[i];if(x)state.records[k]={subject:x[2],scheduled:x._scheduled||x[2],start:x[0],end:x[1]}}else{delete state.status[k];delete state.records[k]}});save();draftStatus={};draftDate=dk;render();toast("Attendance saved") }
-function toggleHoliday(dk){if(!editable(dk))return;state.holidays[dk]?delete state.holidays[dk]:state.holidays[dk]=true;save();render()}
-function setNote(dk,text){if(!editable(dk))return;if(text.trim())state.notes[dk]=text.trim();else delete state.notes[dk];save();render();toast("Note saved")}
+function classTypeForSave(dk,i,session,baseCount){
+  if(i>=baseCount)return "Extra";
+  const d=parseKey(dk),original=(state.settings.schedule[d.getDay()]||[])[i];
+  if(!original)return "Regular";
+  const originalCopy=clone(original);applyDateBasedEvening(d,originalCopy);
+  const os=originalCopy[2], actual=session?.[2]||os, ot=originalCopy[0]+"–"+originalCopy[1], at=(session?.[0]||originalCopy[0])+"–"+(session?.[1]||originalCopy[1]);
+  if(actual===os && at===ot)return "Regular";
+  if(actual===os)return "Rescheduled";
+  const scheduledSubjects=(state.settings.schedule[d.getDay()]||[]).map(x=>{const c=clone(x);applyDateBasedEvening(d,c);return c[2]});
+  if(scheduledSubjects.includes(actual))return "Exchange / Replacement";
+  return "Replacement";
+}
+async function saveAttendance(dk){if(!requireSavedRoll())return;if(!editable(dk))return;ensureDraft(dk);let changes=Object.keys(draftStatus);if(!changes.length){toast("No attendance changes to save");return}if(!await appConfirm("Today remains editable until midnight. For past dates, only classes with a currently saved status are locked; a class cleared and saved as unmarked remains available for one-time past entry.","Save attendance?"))return;state.records=state.records||{};let ss=sessionsFor(parseKey(dk));changes.forEach(k=>{let v=draftStatus[k],i=Number(k.slice(dk.length+1));if(v){state.status[k]=v;let x=ss[i];if(x){const baseCount=(state.settings.schedule[parseKey(dk).getDay()]||[]).length;state.records[k]={subject:x[2],scheduled:x._scheduled||x[2],start:x[0],end:x[1],scheduledStart:x._scheduled?((state.settings.schedule[parseKey(dk).getDay()]||[])[i]?.[0]||x[0]):x[0],scheduledEnd:x._scheduled?((state.settings.schedule[parseKey(dk).getDay()]||[])[i]?.[1]||x[1]):x[1],type:classTypeForSave(dk,i,x,baseCount)}}}else{delete state.status[k];delete state.records[k]}});save();cloudQueue("attendance",dk);draftStatus={};draftDate=dk;render();toast("Attendance saved") }
+function toggleHoliday(dk){if(!editable(dk))return;state.holidays[dk]?delete state.holidays[dk]:state.holidays[dk]=true;save();cloudQueue("holiday",dk);render()}
+function setNote(dk,text){if(!editable(dk))return;if(text.trim())state.notes[dk]=text.trim();else delete state.notes[dk];save();cloudQueue("note",dk);render();toast("Note saved")}
 function rangeEnd(){return today()}
 function compute(filter="all"){let out={attended:0,absent:0,leave:0,notHeld:0,pending:0,total:0,holiday:0,subjects:{}};subjects().forEach(s=>out.subjects[s]={attended:0,absent:0,leave:0,notHeld:0,pending:0,total:0});let cur=new Date(START_DATE),end=rangeEnd();while(cur<=end){if(filter!=="all"&&key(cur).slice(0,7)!==filter){cur=add(cur,1);continue}let dk=key(cur),ss=sessionsFor(cur);if(ss.length){if(state.holidays[dk])out.holiday++;else ss.forEach((x,i)=>{let rec=state.records&&state.records[sessionKey(dk,i)],s=rec&&rec.subject?rec.subject:x[2],st=statusOf(dk,i);if(!out.subjects[s])out.subjects[s]={attended:0,absent:0,leave:0,notHeld:0,pending:0,total:0};out.total++;out.subjects[s].total++;if(st===STATUS.ATTENDED){out.attended++;out.subjects[s].attended++}else if(st===STATUS.ABSENT){out.absent++;out.subjects[s].absent++}else if(st===STATUS.LEAVE){out.leave++;out.subjects[s].leave++}else if(st===STATUS.NOT_HELD){out.notHeld++;out.subjects[s].notHeld++}else{out.pending++;out.subjects[s].pending++}})}cur=add(cur,1)}out.rows=Object.entries(out.subjects).map(([subject,x])=>{let held=x.attended+x.absent+x.leave,pct=held?x.attended/held*100:null;return {subject,...x,held,pct}});out.held=out.attended+out.absent+out.leave;out.percent=out.held?out.attended/out.held*100:null;return out}
 function dayProgress(d){let dk=key(d),ss=sessionsFor(d);if(state.holidays[dk])return {total:0,marked:0};let marked=ss.filter((_,i)=>!!statusOf(dk,i)).length;return {total:ss.length,marked}}
@@ -191,10 +292,165 @@ let combined=combinedEveningRows(st,filter).slice().sort(byAttendanceDesc);
 if(combined.length){h+=`<div class="sectionTitle">🔗 Combined Morning & Evening Attendance</div><div class="small" style="margin:-4px 0 10px">Shown automatically when the same subject has actually been held both in the morning and evening.</div>`;combined.forEach(r=>h+=statsCard(r," 🔗"))}
 return h}
 function calendarTab(){let m=parseKey(state.calendarMonth),y=m.getFullYear(),mo=m.getMonth(),first=new Date(y,mo,1),start=first.getDay(),days=new Date(y,mo+1,0).getDate();let h=`<div class="card calendar"><div class="row" style="justify-content:space-between;margin-bottom:10px"><button class="btn outline" data-act="calPrev">‹</button><b>${monthFmt(first)}</b><button class="btn outline" data-act="calNext">›</button></div><div class="calGrid">${["Sun","Mon","Tue","Wed","Thu","Fri","Sat"].map(x=>`<div class="calDow">${x}</div>`).join("")}${Array.from({length:start},()=>`<div class="calDay empty"></div>`).join("")}`;for(let n=1;n<=days;n++){let d=new Date(y,mo,n),dk=key(d),ss=sessionsFor(d),dot="";if(d>=START_DATE&&d<=today()){if(state.holidays[dk])dot="holiday";else if(ss.length){let vals=ss.map((_,i)=>statusOf(dk,i));let hasUnmarked=vals.some(v=>!v);let hasPresent=vals.some(v=>v===STATUS.ATTENDED);let hasAbsent=vals.some(v=>v===STATUS.ABSENT||v===STATUS.LEAVE);let hasNotHeld=vals.some(v=>v===STATUS.NOT_HELD);if(hasUnmarked)dot="pending";else if(hasPresent&&hasAbsent)dot="mix";else if(hasPresent)dot="good";else if(hasAbsent)dot="bad";else if(hasNotHeld)dot="notHeld"}}h+=`<button class="calDay ${dk===key(today())?"today":""}" data-act="calPick" data-v="${dk}">${n}${dot?`<i class="dot ${dot}"></i>`:""}</button>`}h+=`</div></div><div class="banner info">🟢 Present · 🔴 Absent · 🟡 Mixed · 🟣 Holiday · 🔵 Pending · 🩷 Not Held. Tap a date to open its log.</div>`;return h}
-function settingsTab(){let s=state.settings,edition=s.edition||(s.theme==="dark"?"earth-night":"earth-day"),day=edition==="earth-day",night=edition==="earth-night",glass=edition==="nebula-glass",galactic=edition==="galactic-night",blackhole=edition==="black-hole",heart=edition==="heart-nebula",roshni=edition==="roshni",opal=edition==="opal-dream",celestial=edition==="celestial-glass",outerSpace3d=edition==="outer-space-3d",photon3d=edition==="photon-3d";return `<div class="card formCard"><b>⚙️ Settings</b><label class="label">Name</label><input id="setName" class="input" value="${esc(s.name)}"><label class="label">Course / Academic part</label><input id="setCourse" class="input" value="${esc(s.course)}"><label class="label">Minimum required attendance (%)</label><input id="setRequired" class="input" type="number" min="1" max="100" value="${s.required}"><p class="small" style="margin-top:12px">🔒 Attendance logging time is fixed at 6:00 AM and cannot be changed.</p><label class="label">Clinical Posting Roll Number</label>${s.rollLocked&&s.rollNumber?`<div class="input" style="display:flex;align-items:center;justify-content:space-between"><b>${esc(s.rollNumber)}</b><span>🔒 Permanently locked</span></div><p class="small">Your roll number is permanently saved and cannot be changed.</p>`:`<input id="setRoll" class="input" type="number" min="1" max="100" value="${esc(s.rollNumber||"")}" placeholder="Enter your roll number (1–100)"><p class="small">⚠️ Check carefully. Once saved, your roll number will be permanently locked.</p>`}<p class="small">The app automatically switches to the new roll-number group arrangement from 9 Aug 2027.</p><div style="margin-top:14px"><button class="btn" data-act="saveSettings">Save settings</button></div></div><div class="card editionCard"><b>🌍 App Edition</b><div class="editionChoices"><button class="editionChoice ${day?"selected":""}" data-act="edition" data-v="earth-day">☀️ Earth Day</button><button class="editionChoice ${night?"selected":""}" data-act="edition" data-v="earth-night">🌙 Earth Night</button><button class="editionChoice ${glass?"selected":""}" data-act="edition" data-v="nebula-glass">🌌 Nebula Glass</button><button class="editionChoice ${galactic?"selected":""}" data-act="edition" data-v="galactic-night">🌠 Galactic Night</button><button class="editionChoice ${blackhole?"selected":""}" data-act="edition" data-v="black-hole">🕳️ Black Hole</button><button class="editionChoice ${heart?"selected":""}" data-act="edition" data-v="heart-nebula">❤️ Heart Nebula</button><button class="editionChoice ${roshni?"selected":""}" data-act="edition" data-v="roshni">🪔Roshni</button><button class="editionChoice ${opal?"selected":""}" data-act="edition" data-v="opal-dream">💎 Opal Dream</button><button class="editionChoice ${celestial?"selected":""}" data-act="edition" data-v="celestial-glass">🔭 Celestial Glass</button><button class="editionChoice ${outerSpace3d?"selected":""}" data-act="edition" data-v="outer-space-3d">🌌 Outer Space 3D</button><button class="editionChoice ${photon3d?"selected":""}" data-act="edition" data-v="photon-3d">💡 Photon 3D</button></div></div><div class="card formCard"><b>📚 Schedule</b><p class="small">Schedule changes apply to new/unsaved classes. Saved attendance keeps its original subject permanently for accurate history and statistics.</p><button class="btn scheduleManage" type="button" onclick="openManageSchedule()">Manage schedule</button></div><p class="small" style="text-align:center">Tracking starts on 7 Sep 2026 and continues indefinitely.</p><div class="cosmosEdition">${day?"🌍 EARTH DAY EDITION":night?"🌙 EARTH NIGHT EDITION":glass?"🌌 NEBULA GLASS EDITION":galactic?"🌠 GALACTIC NIGHT EDITION":blackhole?"🕳️ BLACK HOLE EDITION":heart?"❤️ HEART NEBULA EDITION":roshni?"🪔 ROSHNI EDITION":opal?"💎 OPAL DREAM EDITION":outerSpace3d?"🌌 OUTER SPACE 3D EDITION":photon3d?"💡 PHOTON 3D EDITION":"🔭 CELESTIAL GLASS EDITION"} • UI VERIFIED</div>`}
-function footer(){return `<div class="madeby">Made By Sharad Sourav🩺</div>`}
+function settingsTab(){
+  let s=state.settings,edition=s.edition||(s.theme==="dark"?"earth-night":"earth-day"),day=edition==="earth-day",night=edition==="earth-night",glass=edition==="nebula-glass",galactic=edition==="galactic-night",blackhole=edition==="black-hole",heart=edition==="heart-nebula",roshni=edition==="roshni",opal=edition==="opal-dream",celestial=edition==="celestial-glass",outerSpace3d=edition==="outer-space-3d",photon3d=edition==="photon-3d";
+  const user=cloudSession.user;
+  const accountCard=`<div class="card formCard cloudAccountCard"><b>☁️ Account & Cloud</b><div class="cloudIdentity">${user?`<div class="cloudAvatar">${cloudSession.admin?"👑":esc((user.email||"S").slice(0,1).toUpperCase())}</div><div class="grow"><b>${esc(user.email||"")}</b>${cloudStatusMarkup()}<button class="syncTapBtn" data-act="syncNow">↻ Tap to Sync</button></div>`:`<div class="cloudAvatar">☁</div><div class="grow"><b>Not signed in</b><div id="cloudStatusText" class="small syncStatus syncStatusBad">✕ Not signed in · Sign in to save data permanently to Firebase.</div></div>`}</div><div class="cloudActions">${user?`${cloudSession.admin?`<button class="btn soft" data-act="adminDashboard">👑 Admin Dashboard</button>`:``}<button class="btn outline logoutBtn" data-act="logout" style="background:#d62828 !important;background-image:none !important;border:0 !important;color:#fff !important;box-shadow:0 5px 0 #9f1717,0 10px 18px rgba(214,40,40,.22) !important;">Logout</button>`:`<button class="btn" data-act="studentLogin">Student Login</button><button class="btn outline" data-act="adminLogin">Admin Login</button>`}</div>${user?`<div class="cloudActions secondary"><button class="btn outline" data-act="forgotPassword">Forgot Password</button></div>`:`<p class="small">Student and Admin accounts use Firebase Email/Password authentication. Admin access requires an authorized Firebase admin role.</p>`}</div>`;
+  return accountCard+`<div class="card formCard"><b>⚙️ Settings</b><label class="label">Name</label><input id="setName" class="input" value="${esc(s.name)}"><label class="label">Course / Academic part</label><input id="setCourse" class="input" value="${esc(s.course)}"><label class="label">Minimum required attendance (%)</label><input id="setRequired" class="input" type="number" min="1" max="100" value="${s.required}"><p class="small" style="margin-top:12px">🔒 Attendance logging time is fixed at 6:00 AM and cannot be changed.</p><label class="label">Clinical Posting Roll Number</label>${s.rollLocked&&s.rollNumber?`<div class="input" style="display:flex;align-items:center;justify-content:space-between"><b>${esc(s.rollNumber)}</b><span>🔒 Permanently locked</span></div><p class="small">Your roll number is permanently saved and cannot be changed.</p>`:`<input id="setRoll" class="input" type="number" min="1" max="100" value="${esc(s.rollNumber||"")}" placeholder="Enter your roll number (1–100)"><p class="small">⚠️ Check carefully. Once saved, your roll number will be permanently locked.</p>`}<p class="small">The app automatically switches to the new roll-number group arrangement from 9 Aug 2027.</p><div style="margin-top:14px"><button class="btn" data-act="saveSettings">Save settings</button></div></div><div class="card editionCard"><b>🌍 App Edition</b><div class="editionChoices"><button class="editionChoice ${day?"selected":""}" data-act="edition" data-v="earth-day">☀️ Earth Day</button><button class="editionChoice ${night?"selected":""}" data-act="edition" data-v="earth-night">🌙 Earth Night</button><button class="editionChoice ${glass?"selected":""}" data-act="edition" data-v="nebula-glass">🌌 Nebula Glass</button><button class="editionChoice ${galactic?"selected":""}" data-act="edition" data-v="galactic-night">🌠 Galactic Night</button><button class="editionChoice ${blackhole?"selected":""}" data-act="edition" data-v="black-hole">🕳️ Black Hole</button><button class="editionChoice ${heart?"selected":""}" data-act="edition" data-v="heart-nebula">❤️ Heart Nebula</button><button class="editionChoice ${roshni?"selected":""}" data-act="edition" data-v="roshni">🪔Roshni</button><button class="editionChoice ${opal?"selected":""}" data-act="edition" data-v="opal-dream">💎 Opal Dream</button><button class="editionChoice ${celestial?"selected":""}" data-act="edition" data-v="celestial-glass">🔭 Celestial Glass</button><button class="editionChoice ${outerSpace3d?"selected":""}" data-act="edition" data-v="outer-space-3d">🌌 Outer Space 3D</button><button class="editionChoice ${photon3d?"selected":""}" data-act="edition" data-v="photon-3d">💡 Photon 3D</button></div></div><div class="card formCard"><b>📚 Schedule</b><p class="small">Schedule changes apply to new/unsaved classes. Saved attendance keeps its original subject permanently for accurate history and statistics.</p><button class="btn scheduleManage" type="button" onclick="openManageSchedule()">Manage schedule</button></div><p class="small" style="text-align:center">Tracking starts on 7 Sep 2026 and continues indefinitely.</p><div class="cosmosEdition">${day?"🌍 EARTH DAY EDITION":night?"🌙 EARTH NIGHT EDITION":glass?"🌌 NEBULA GLASS EDITION":galactic?"🌠 GALACTIC NIGHT EDITION":blackhole?"🕳️ BLACK HOLE EDITION":heart?"❤️ HEART NEBULA EDITION":roshni?"🪔 ROSHNI EDITION":opal?"💎 OPAL DREAM EDITION":outerSpace3d?"🌌 OUTER SPACE 3D EDITION":"🔭 CELESTIAL GLASS EDITION"} • UI VERIFIED</div>`
+}
+function cloudAuthModal(mode){
+  const title=mode==="admin"?"👑 Admin Login":"👤 Student Login";
+  document.querySelectorAll('.modal').forEach(m=>m.remove());
+  document.body.insertAdjacentHTML('beforeend',`<div class="modal" id="cloudAuthModal"><div class="modalBox cloudAuthBox"><div class="row" style="justify-content:space-between"><b>${title}</b><button class="btn outline" data-act="closeModal">Close</button></div><p class="small">Use your Firebase Email/Password account.</p><label class="label">Email</label><input id="cloudEmail" class="input" type="email" autocomplete="username" placeholder="Enter email"><label class="label">Password</label><input id="cloudPassword" class="input" type="password" autocomplete="current-password" placeholder="Enter password"><div id="cloudAuthError" class="cloudAuthError"></div><div class="cloudActions"><button class="btn grow" data-act="submitCloudLogin" data-mode="${mode}">${mode==="admin"?"Admin Login":"Student Login"}</button><button class="btn outline" data-act="forgotFromLogin">Forgot Password</button></div>${mode==="student"?`<div class="authCreateDivider"><span>New student?</span></div><button class="btn soft authCreateBtn" data-act="createStudentAccount">Create Account</button>`:""}</div></div>`);
+  setTimeout(()=>document.getElementById('cloudEmail')?.focus(),0);
+}
+function studentCreateModal(prefill="") {
+  document.querySelectorAll('.modal').forEach(m=>m.remove());
+  document.body.insertAdjacentHTML('beforeend',`<div class="modal" id="studentCreateModal"><div class="modalBox cloudAuthBox"><div class="row" style="justify-content:space-between"><b>📝 Create Student Account</b><button class="btn outline" data-act="closeModal">Close</button></div><p class="small">Create your Firebase account. Your attendance data on this phone will remain intact and can be linked to the account after sign-up.</p><label class="label">Name</label><input id="createName" class="input" value="${esc(state.settings?.name||"")}" placeholder="Enter your name"><label class="label">Email</label><input id="createEmail" class="input" type="email" value="${esc(prefill)}" autocomplete="email" placeholder="Enter email"><label class="label">Password</label><input id="createPassword" class="input" type="password" autocomplete="new-password" placeholder="At least 6 characters"><label class="label">Confirm Password</label><input id="createPassword2" class="input" type="password" autocomplete="new-password" placeholder="Re-enter password"><div id="createAccountError" class="cloudAuthError"></div><button class="btn" style="width:100%;margin-top:14px" data-act="submitCreateStudent">Create Account</button></div></div>`);
+  setTimeout(()=>document.getElementById('createEmail')?.focus(),0);
+}
+function cloudForgotModal(prefill=""){
+  document.querySelectorAll('.modal').forEach(m=>m.remove());
+  document.body.insertAdjacentHTML('beforeend',`<div class="modal"><div class="modalBox cloudAuthBox"><div class="row" style="justify-content:space-between"><b>🔑 Reset Password</b><button class="btn outline" data-act="closeModal">Close</button></div><p class="small">Enter your Firebase account email. A password-reset email will be sent if the account exists.</p><label class="label">Email</label><input id="resetEmail" class="input" type="email" value="${esc(prefill)}" autocomplete="email" placeholder="Enter email"><div id="resetError" class="cloudAuthError"></div><button class="btn" style="width:100%;margin-top:14px" data-act="sendReset">Send Reset Email</button></div></div>`);
+}
+function formatCloudTime(v){
+  if(!v)return "—";
+  const d=new Date(v);
+  return Number.isNaN(d.getTime())?"—":d.toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"});
+}
+function adminSyncStatusHtml(){
+  if(cloudSession.syncing)return '<span id="adminSyncStatusText" class="syncStatus syncStatusGood">✓ Syncing…</span>';
+  if(cloudSession.error)return '<span id="adminSyncStatusText" class="syncStatus syncStatusBad">✕ Sync failed</span>';
+  const t=cloudSession.lastSync||readAdminLastSync();
+  if(cloudSession.user&&t)return `<span id="adminSyncStatusText" class="syncStatus syncStatusGood">✓ Last synced · ${formatCloudTime(t)}</span>`;
+  return '<span id="adminSyncStatusText" class="syncStatus syncStatusBad">✕ Sync status unavailable</span>';
+}
+function cloudStatusMarkup(){
+  if(cloudSession.syncing)return '<span id="cloudStatusText" class="small syncStatus syncStatusGood">✓ Syncing…</span>';
+  if(cloudSession.error)return `<span id="cloudStatusText" class="small syncStatus syncStatusBad">✕ Sync failed · ${esc(cloudSession.error)}</span>`;
+  const t=cloudSession.admin?(cloudSession.lastSync||readAdminLastSync()):cloudSession.lastSync;
+  if(cloudSession.user&&t)return `<span id="cloudStatusText" class="small syncStatus syncStatusGood">✓ Last synced · ${formatCloudTime(t)}</span>`;
+  if(cloudSession.user)return '<span id="cloudStatusText" class="small syncStatus syncStatusBad">✕ Sync status unavailable</span>';
+  return '<span id="cloudStatusText" class="small syncStatus syncStatusBad">✕ Not signed in</span>';
+}
+function adminDashboard(){
+  if(!cloudSession.admin)return `<div class="card formCard"><b>Admin access required</b><p class="small">Sign in with an authorized Admin account.</p></div>`;
+  if(!adminCache.students.length)return `<div class="card formCard"><div class="row" style="justify-content:space-between"><b>👑 Admin Dashboard</b><div class="cloudActions"><button class="btn soft" data-act="refreshAdmin">Refresh</button><button class="btn outline" data-act="backFromAdmin">Back</button></div></div><div class="adminSyncBar"><div class="adminSyncStatusLine">${adminSyncStatusHtml()}<button class="syncTapBtn" data-act="syncNow">↻ Tap to Sync</button></div></div><p class="small">No student profiles have been synced to Firebase yet.</p></div>`;
+  let h=`<div class="card formCard adminHero"><div class="row" style="justify-content:space-between"><div><b>👑 Admin Dashboard</b><div class="small">Complete cloud student records</div></div><button class="btn outline" data-act="backFromAdmin">Back</button></div><div class="adminSyncBar"><div class="adminSyncStatusLine">${adminSyncStatusHtml()}<button class="syncTapBtn" data-act="syncNow">↻ Tap to Sync</button></div></div><div class="adminSearch"><input id="adminSearch" class="input" placeholder="Search name, roll or email" oninput="filterAdminStudents(this.value)"></div></div><div id="adminStudentList">${adminStudentCards(adminCache.students)}</div>`;return h;
+}
+function adminStudentCards(students){return students.map(s=>{
+  const sync=s.updatedAt?`<span class="syncStatus syncStatusGood">✓ Last synced · ${formatCloudTime(s.updatedAt)}</span>`:'<span class="syncStatus syncStatusBad">✕ Last sync time unavailable</span>';
+  return `<button class="adminStudent card" data-act="adminStudent" data-uid="${esc(s.uid)}"><div class="adminStudentMain"><b>${esc(s.name||"Student")}</b><span>Roll: ${esc(s.rollNumber||"—")}</span></div><div class="small">${esc(s.email||"")}</div><div class="adminStudentMeta"><span>Required ${Number(s.required||75)}%</span><span>${esc(s.course||"")}</span></div><div class="adminStudentSync">${sync}</div></button>`;
+}).join('')||`<div class="card formCard"><p class="small">No matching students.</p></div>`}
+function filterAdminStudents(q){const v=String(q||'').toLowerCase();const list=adminCache.students.filter(s=>[s.name,s.rollNumber,s.email].some(x=>String(x||'').toLowerCase().includes(v)));const el=document.getElementById('adminStudentList');if(el)el.innerHTML=adminStudentCards(list)}
+function adminClassInfo(dateKey,snap,rec,i,sessions){
+  const d=parseKey(dateKey), base=(state.settings.schedule[d.getDay()]||[]).map(x=>clone(x));
+  const isExtra=!!snap?.extra || i>=base.length;
+  const scheduledBase=isExtra?null:base[i];
+  if(scheduledBase) applyDateBasedEvening(d,scheduledBase);
+  const scheduledSubject=scheduledBase?scheduledBase[2]:(rec?.scheduled||"—");
+  const scheduledStart=scheduledBase?scheduledBase[0]:(rec?.scheduledStart||"");
+  const scheduledEnd=scheduledBase?scheduledBase[1]:(rec?.scheduledEnd||"");
+  const actualSubject=rec?.subject||snap?.subject||(scheduledSubject&&scheduledSubject!=="—"?scheduledSubject:"—");
+  const actualStart=rec?.start||snap?.start||"";
+  const actualEnd=rec?.end||snap?.end||"";
+  if(isExtra){
+    return {scheduledSubject:"— No original class —",actualSubject,scheduledStart:"",scheduledEnd:"",actualStart,actualEnd,type:"Extra",relationship:"Extra class — no originally scheduled class"};
+  }
+  const sameSubject=actualSubject===scheduledSubject;
+  const sameTime=actualStart===scheduledStart && actualEnd===scheduledEnd;
+  if(sameSubject && sameTime) return {scheduledSubject,actualSubject,scheduledStart,scheduledEnd,actualStart,actualEnd,type:rec?.type||"Regular",relationship:"—"};
+  if(sameSubject) return {scheduledSubject,actualSubject,scheduledStart,scheduledEnd,actualStart,actualEnd,type:rec?.type||"Rescheduled",relationship:`Rescheduled: ${time(scheduledStart)}–${time(scheduledEnd)} → ${time(actualStart)}–${time(actualEnd)}`};
+  const originalSlots=base.map((x,j)=>{const c=clone(x);applyDateBasedEvening(d,c);return {index:j,subject:c[2],start:c[0],end:c[1]};});
+  const other=originalSlots.find(x=>x.index!==i && x.subject===actualSubject);
+  if(other){
+    return {scheduledSubject,actualSubject,scheduledStart,scheduledEnd,actualStart,actualEnd,type:rec?.type||"Exchange / Replacement",relationship:`${actualSubject} moved from ${time(other.start)}–${time(other.end)} to this slot; ${scheduledSubject} was originally here`};
+  }
+  return {scheduledSubject,actualSubject,scheduledStart,scheduledEnd,actualStart,actualEnd,type:rec?.type||"Replacement",relationship:`${actualSubject} replaced ${scheduledSubject} in this scheduled slot`};
+}
+function adminStudentPage(uid){
+  const s=adminCache.students.find(x=>x.uid===uid), days=adminCache.days||[];
+  if(!s)return `<div class="card formCard"><p>Student not found.</p><button class="btn" data-act="backFromStudent">Back</button></div>`;
+  const grouped=[];
+  days.slice().sort((a,b)=>String(a.date).localeCompare(String(b.date))).forEach(d=>{
+    const rows=[]; const sessions=d.sessions||[]; const max=Math.max(sessions.length,Object.keys(d.records||{}).length,Object.keys(d.status||{}).length);
+    for(let i=0;i<max;i++){
+      const snap=sessions[i]||{},rec=d.records?.[i]||{},status=d.status?.[i]||"pending",info=adminClassInfo(d.date,snap,rec,i,sessions);
+      rows.push({date:d.date,index:i,status,scheduledSubject:info.scheduledSubject,actualSubject:info.actualSubject,scheduledStart:info.scheduledStart,scheduledEnd:info.scheduledEnd,actualStart:info.actualStart,actualEnd:info.actualEnd,note:d.note||"",holiday:d.holiday,type:info.type,relationship:info.relationship});
+    }
+    if(d.note&&!max)rows.push({date:d.date,index:"",status:"note",scheduledSubject:"—",actualSubject:"Day note",scheduledStart:"",scheduledEnd:"",actualStart:"",actualEnd:"",note:d.note,holiday:d.holiday,type:"Note",relationship:"Day note"});
+    if(rows.length)grouped.push({date:d.date,rows});
+  });
+  const stats=adminCompute(days);
+  const months=[...new Set(grouped.map(g=>String(g.date).slice(0,7)))].sort().reverse();
+  if(!months.includes(adminCache.studentMonth))adminCache.studentMonth=months[0]||"";
+  const selectedMonth=adminCache.studentMonth;
+  const filters=[['all','All'],['present','Present'],['absent','Absent'],['not_held','Not Held'],['extra','Extra Classes'],['pending','Pending']];
+  const selectedFilter=filters.some(x=>x[0]===adminCache.studentFilter)?adminCache.studentFilter:'all';
+  const monthButtons=months.map(m=>{const d=new Date(Number(m.slice(0,4)),Number(m.slice(5,7))-1,1);return `<button class="filter ${m===selectedMonth?'active':''}" data-act="adminMonth" data-v="${m}">${esc(monthFmt(d))}</button>`}).join('')||'<span class="small">No attendance months available.</span>';
+  const filteredGroups=grouped.filter(g=>!selectedMonth||String(g.date).slice(0,7)===selectedMonth).map(g=>({date:g.date,rows:g.rows.filter(r=>{
+    if(selectedFilter==='all')return true;
+    if(selectedFilter==='extra')return r.type==='Extra';
+    if(selectedFilter==='present')return r.status==='attended';
+    if(selectedFilter==='absent')return r.status==='absent'||r.status==='leave';
+    if(selectedFilter==='not_held')return r.status==='not_held';
+    if(selectedFilter==='pending')return r.status==='pending';
+    return true;
+  })})).filter(g=>g.rows.length);
+  const detailRows=filteredGroups.map(g=>{
+    const d=parseKey(g.date),label=`${DAYS[d.getDay()]}, ${fmt(d)}`;
+    return `<tr class="adminDateGroup"><th colspan="6">${esc(label)}</th></tr>${g.rows.map(r=>{
+      const scheduledTime=r.scheduledStart&&r.scheduledEnd?time(r.scheduledStart)+'–'+time(r.scheduledEnd):'—';
+      const actualTime=r.actualStart&&r.actualEnd?time(r.actualStart)+'–'+time(r.actualEnd):'—';
+      const scheduled=r.scheduledSubject?`${esc(r.scheduledSubject)}<small>${esc(scheduledTime)}</small>`:'—';
+      const actual=r.actualSubject?`${esc(r.actualSubject)}<small>${esc(actualTime)}</small>`:'—';
+      return `<tr><td>${scheduled}</td><td>${actual}</td><td>${esc(r.type||'Regular')}</td><td>${esc(adminStatusLabel(r.status))}</td><td>${esc(r.relationship||'—')}</td><td>${esc(r.note||'—')}</td></tr>`;
+    }).join('')}`;
+  }).join('')||`<tr><td colspan="6" class="small">No attendance records match this month/filter.</td></tr>`;
+  const studentSync=s.updatedAt?`<span class="syncStatus syncStatusGood">✓ Last synced · ${formatCloudTime(s.updatedAt)}</span>`:'<span class="syncStatus syncStatusBad">✕ Last sync time unavailable</span>';
+  return `<div class="card formCard adminHero"><div class="row" style="justify-content:space-between"><div><b>👤 ${esc(s.name||"Student")}</b><div class="small">Roll ${esc(s.rollNumber||"—")} · ${esc(s.email||"")}</div></div><button class="btn outline" data-act="backFromStudent">Back</button></div><div class="adminStudentSync detailSync">${studentSync}</div><div class="adminSummaryGrid"><div><b>${stats.present}</b><span>Present</span></div><div><b>${stats.absent}</b><span>Absent</span></div><div><b>${stats.notHeld}</b><span>Not Held</span></div><div><b>${stats.pending}</b><span>Pending</span></div><div><b>${stats.total}</b><span>Total</span></div></div><div class="adminPercent">Overall attendance: <b>${stats.percent===null?'—':stats.percent.toFixed(1)+'%'}</b></div></div><div class="card formCard"><b>📚 Subject-wise attendance</b>${Object.entries(stats.subjects).sort((a,b)=>a[0].localeCompare(b[0])).map(([sub,x])=>`<div class="adminSubjectRow"><b>${esc(sub)}</b><span>${x.held?((x.present/x.held)*100).toFixed(1)+'%':'—'}</span><small>Present ${x.present} · Absent ${x.absent} · Pending ${x.pending} · Not Held ${x.notHeld} · Total ${x.total}</small></div>`).join('')||`<div class="small" style="margin-top:10px">No subject records yet.</div>`}</div><div class="card formCard adminMonthFilterCard"><b>🗓️ Attendance month</b><div class="tabs adminMonthList">${monthButtons}</div><div class="small adminFilterHint">Select a month to view its daily attendance.</div><b class="adminFilterTitle">🔎 Attendance filter</b><div class="tabs adminStatusFilters">${filters.map(([v,l])=>`<button class="filter ${selectedFilter===v?'active':''}" data-act="adminStudentFilter" data-v="${v}">${l}</button>`).join('')}</div></div><div class="card formCard adminDetailsCard"><div class="adminDetailsHead"><b>📋 Detailed attendance${selectedMonth?` · ${esc(monthFmt(parseKey(selectedMonth+'-01')))}`:''}</b><div class="adminReportActions"><button class="btn outline" data-act="printAdminReport">View Full Report</button><button class="btn soft" data-act="exportAdminPdf">Export PDF</button></div></div><details class="adminDetails" open><summary>Show records grouped by date</summary><div class="adminTableWrap"><table class="adminTable adminGroupedTable"><thead><tr><th>Scheduled Class</th><th>Actual Class</th><th>Type</th><th>Status</th><th>What changed?</th><th>Note</th></tr></thead><tbody>${detailRows}</tbody></table></div></details></div>`;
+}
+function adminStatusLabel(v){return v==="attended"?"Present":v==="absent"?"Absent":v==="leave"?"Absent / Leave":v==="not_held"?"Not Held":v==="pending"?"Pending":v==="note"?"Note":String(v||"")}
+function adminCompute(days){const o={present:0,absent:0,pending:0,notHeld:0,total:0,subjects:{}};days.forEach(d=>{const sessions=d.sessions||[],max=Math.max(sessions.length,Object.keys(d.records||{}).length,Object.keys(d.status||{}).length);for(let i=0;i<max;i++){const r=d.records?.[i]||{},snap=sessions[i]||{},sub=r.subject||snap.subject||r.scheduled||snap.scheduledSubject||"Unknown",st=d.status?.[i]||"pending";const x=o.subjects[sub]||(o.subjects[sub]={present:0,absent:0,pending:0,notHeld:0,total:0,held:0});if(st==="attended"){o.present++;o.total++;x.present++;x.total++;x.held++}else if(st==="absent"||st==="leave"){o.absent++;o.total++;x.absent++;x.total++;x.held++}else if(st==="not_held"){o.notHeld++;x.notHeld++}else{o.pending++;x.pending++}}});o.percent=o.present+o.absent?o.present/(o.present+o.absent)*100:null;return o}
+function buildAdminReportData(s,days){
+  const stats=adminCompute(days),grouped=[];
+  days.slice().sort((a,b)=>String(a.date).localeCompare(String(b.date))).forEach(d=>{
+    const sessions=d.sessions||[],max=Math.max(sessions.length,Object.keys(d.records||{}).length,Object.keys(d.status||{}).length),rows=[];
+    for(let i=0;i<max;i++){
+      const r=d.records?.[i]||{},snap=sessions[i]||{},status=d.status?.[i]||"pending",info=adminClassInfo(d.date,snap,r,i,sessions);
+      rows.push({scheduledSubject:info.scheduledSubject,actualSubject:info.actualSubject,scheduled:info.scheduledStart&&info.scheduledEnd?time(info.scheduledStart)+'–'+time(info.scheduledEnd):'—',actual:info.actualStart&&info.actualEnd?time(info.actualStart)+'–'+time(info.actualEnd):'—',type:info.type,status:adminStatusLabel(status),relationship:info.relationship,note:d.note||""});
+    }
+    if(d.note&&!rows.length)rows.push({scheduledSubject:"—",actualSubject:"Day note",scheduled:"—",actual:"—",type:"Note",status:"Note",relationship:"Day note",note:d.note});
+    if(rows.length){const dk=parseKey(d.date);grouped.push({label:`${DAYS[dk.getDay()]}, ${fmt(dk)}`,rows})}
+  });
+  return {stats,grouped};
+}
+function reportSubjectHtml(stats){
+  return Object.entries(stats.subjects).sort((a,b)=>a[0].localeCompare(b[0])).map(([sub,x])=>`<div class="reportSubject"><b>${esc(sub)}</b><span>${x.held?((x.present/x.held)*100).toFixed(1)+"%":"—"}</span><small>Present ${x.present} · Absent ${x.absent} · Pending ${x.pending} · Not Held ${x.notHeld} · Total ${x.total}</small></div>`).join("")||'<div class="small">No subject records yet.</div>';
+}
+function reportDetailHtml(grouped){
+  return grouped.map(g=>`<section class="reportDay"><h3>${esc(g.label)}</h3><div class="reportTable"><div class="reportTableHead"><span>Scheduled Class</span><span>Actual Class</span><span>Type</span><span>Status</span><span>What changed?</span><span>Note</span></div>${g.rows.map(r=>`<div class="reportTableRow"><span><b>${esc(r.scheduledSubject||"—")}</b><small>${esc(r.scheduled)}</small></span><span><b>${esc(r.actualSubject||"—")}</b><small>${esc(r.actual)}</small></span><span>${esc(r.type)}</span><span>${esc(r.status)}</span><span>${esc(r.relationship||"—")}</span><span>${esc(r.note||"—")}</span></div>`).join("")}</div></section>`).join("")||'<div class="small">No attendance records found.</div>';
+}
+function printAdminReport(){
+  const s=adminCache.students.find(x=>x.uid===adminCache.selected),days=adminCache.days||[];
+  if(!s){toast("Student report not found");return}
+  const {stats,grouped}=buildAdminReportData(s,days);
+  const modal=document.createElement("div");modal.className="modal reportModal";
+  modal.innerHTML=`<div class="modalBox reportSheet"><div class="reportHead"><div><h2>📋 Attendance Report</h2><div class="small">Complete cloud record</div></div><button class="btn outline" data-act="closeModal">Close</button></div><div class="reportIdentity"><b>${esc(s.name||"Student")}</b><span>Roll ${esc(s.rollNumber||"—")} · ${esc(s.email||"")}</span><span>Required attendance: ${Number(s.required||75)}%</span></div><div class="reportMetrics"><div><b>${stats.present}</b><span>Present</span></div><div><b>${stats.absent}</b><span>Absent</span></div><div><b>${stats.pending}</b><span>Pending</span></div><div><b>${stats.total}</b><span>Total</span></div></div><div class="reportOverall">Overall attendance: <b>${stats.percent===null?"—":stats.percent.toFixed(1)+"%"}</b></div><h3 class="reportSectionTitle">📚 Subject-wise attendance</h3><div class="reportSubjects">${reportSubjectHtml(stats)}</div><h3 class="reportSectionTitle">🗓️ Detailed attendance</h3><div class="reportDetails">${reportDetailHtml(grouped)}</div></div>`;
+  document.body.appendChild(modal);
+}
+function exportAdminPdf(){
+  const s=adminCache.students.find(x=>x.uid===adminCache.selected),days=adminCache.days||[];
+  if(!s){toast("Student report not found");return}
+  const {stats,grouped}=buildAdminReportData(s,days);
+  const modal=document.createElement("div");modal.className="modal pdfPreviewModal";
+  modal.innerHTML=`<div class="pdfPreviewPage"><div class="pdfPreviewTop"><button class="btn outline pdfCloseButton" data-act="closeModal" style="background:#000!important;background-color:#000!important;background-image:none!important;border:1px solid #fff!important;border-color:#fff!important;color:#fff!important;-webkit-text-fill-color:#fff!important;box-shadow:none!important;text-shadow:none!important;opacity:1!important;filter:none!important;appearance:none!important;-webkit-appearance:none!important">Close</button></div><article class="pdfReport"><h1>Attendance Report</h1><div class="pdfSub">Complete cloud student attendance record</div><div class="pdfMeta"><div><b>Student</b><span>${esc(s.name||"Student")}</span></div><div><b>Roll</b><span>${esc(s.rollNumber||"—")}</span></div><div><b>Email</b><span>${esc(s.email||"—")}</span></div><div><b>Required Attendance</b><span>${Number(s.required||75)}%</span></div></div><div class="pdfSummary"><div><b>${stats.present}</b><span>Present</span></div><div><b>${stats.absent}</b><span>Absent</span></div><div><b>${stats.pending}</b><span>Pending</span></div><div><b>${stats.total}</b><span>Total</span></div><div><b>${stats.percent===null?"—":stats.percent.toFixed(1)+"%"}</b><span>Overall</span></div></div><h2>Subject-wise Attendance</h2><div class="pdfSubjectTable"><div class="pdfSubjectHead"><span>Subject</span><span>Present</span><span>Absent</span><span>Pending</span><span>Not Held</span><span>Total</span><span>%</span></div>${Object.entries(stats.subjects).sort((a,b)=>a[0].localeCompare(b[0])).map(([sub,x])=>`<div class="pdfSubjectRow"><span>${esc(sub)}</span><span>${x.present}</span><span>${x.absent}</span><span>${x.pending}</span><span>${x.notHeld}</span><span>${x.total}</span><span>${x.held?((x.present/x.held)*100).toFixed(1)+"%":"—"}</span></div>`).join("")||'<div class="pdfEmpty">No subject records yet.</div>'}</div><h2>Detailed Attendance</h2>${grouped.map(g=>`<section class="pdfDay"><h3>${esc(g.label)}</h3><table><thead><tr><th>Scheduled Class</th><th>Actual Class</th><th>Type</th><th>Status</th><th>What changed?</th><th>Note</th></tr></thead><tbody>${g.rows.map(r=>`<tr><td><b>${esc(r.scheduledSubject||"—")}</b><br><small>${esc(r.scheduled)}</small></td><td><b>${esc(r.actualSubject||"—")}</b><br><small>${esc(r.actual)}</small></td><td>${esc(r.type)}</td><td>${esc(r.status)}</td><td>${esc(r.relationship||"—")}</td><td>${esc(r.note||"—")}</td></tr>`).join("")}</tbody></table></section>`).join("")||'<div class="pdfEmpty">No attendance records found.</div>'}<div class="pdfFooter">Generated from Firebase cloud student data · Attendance Tracker</div></article></div>`;
+  document.body.appendChild(modal);
+}
+
+function footer(){return `<div class="madeby">Made by Sharad Sourav 🩺</div>`}
 function bottom(){let items=[["log","▣","Log"],["calendar","▦","Calendar"],["stats","▥","Stats"],["settings","⚙","Settings"]];return `<div class="nav">${items.map(x=>`<button class="${state.tab===x[0]?"active":""}" data-act="tab" data-v="${x[0]}"><b>${x[1]}</b>${x[2]}</button>`).join("")}</div>`}
-function render(){applyTheme();let content=state.infoPage?dailyInfoPage():state.tab==="log"?logTab():state.tab==="stats"?statsTab():state.tab==="calendar"?calendarTab():settingsTab();let animate=window.__animateNavigation===true;window.__animateNavigation=false;document.getElementById("app").innerHTML=`<div class="app">${header()}<main class="container${animate?" tabTransition":""}">${content}${state.infoPage?"":footer()}</main>${state.infoPage?"":bottom()}</div>`}
+function render(){applyTheme();let content=state.infoPage?dailyInfoPage():state.adminPage==="dashboard"?adminDashboard():state.adminPage==="student"?adminStudentPage(adminCache.selected):state.tab==="log"?logTab():state.tab==="stats"?statsTab():state.tab==="calendar"?calendarTab():settingsTab();let animate=window.__animateNavigation===true;window.__animateNavigation=false;document.getElementById("app").innerHTML=`<div class="app">${header()}<main class="container${animate?" tabTransition":""}">${content}${state.infoPage?"":footer()}</main>${state.infoPage?"":bottom()}</div>`}
 function toast(msg){let old=document.querySelector(".toast");if(old)old.remove();let x=document.createElement("div");x.className="toast";x.textContent=msg;document.body.appendChild(x);setTimeout(()=>x.remove(),2200)}
 function datePicker(){
 
@@ -212,8 +468,119 @@ function datePicker(){
   document.body.appendChild(modal);
 }
 document.addEventListener("change",e=>{const el=e.target.closest("#subjectSelect");if(!el)return;const wrap=document.getElementById("otherSubjectWrap");if(wrap)wrap.classList.toggle("hidden",el.value!=="__OTHER__")});
-document.addEventListener("click",async e=>{let el=e.target.closest("[data-act]");if(!el)return;let a=el.dataset.act;if(a==="dailyInfo"){state.infoPage=true;render()}else if(a==="backFromInfo"){state.infoPage=false;render()}else if(a==="tab"){window.__animateNavigation=true;draftDate=null;draftStatus={};state.tab=el.dataset.v;save();render()}else if(a==="prev"){draftDate=null;draftStatus={};let d=add(parseKey(state.viewDate),-1);state.viewDate=key(d<START_DATE?START_DATE:d);save();render()}else if(a==="next"){draftDate=null;draftStatus={};state.viewDate=key(add(parseKey(state.viewDate),1));save();render()}else if(a==="today"){draftDate=null;draftStatus={};state.viewDate=key(today());save();render()}else if(a==="pickDate"||a==="dateInput")datePicker();else if(a==="confirmDate"){let inp=document.getElementById("pickerDate");if(inp&&inp.value){draftDate=null;draftStatus={};state.viewDate=inp.value;window.__animateNavigation=true;state.tab="log";save();document.querySelectorAll(".modal").forEach(m=>m.remove());render()}}else if(a==="status")setStatus(el.dataset.k,el.dataset.v);else if(a==="saveAttendance")saveAttendance(state.viewDate);else if(a==="holiday")toggleHoliday(state.viewDate);else if(a==="saveNote")setNote(state.viewDate,document.getElementById("dayNote").value);else if(a==="editClass")classModal(Number(el.dataset.i));else if(a==="addExtra")extraModal();else if(a==="openTimeWheel"){let box=el.closest(".timePicker");if(box)openTimeWheel(box)}else if(a==="saveClassEdit"){let i=Number(el.dataset.i),dk=state.viewDate,base=(state.settings.schedule[parseKey(dk).getDay()]||[]).length,sub=selectedSubject(),st=readTimePicker("actualStart"),en=readTimePicker("actualEnd");if(!sub||!st||!en){toast("Enter subject and times");return}if(i<base){state.overrides[dk]=state.overrides[dk]||{};state.overrides[dk][i]={subject:sub,start:st,end:en}}else{let j=i-base;state.extraClasses[dk][j]=[st,en,sub]}save();document.querySelectorAll(".modal").forEach(m=>m.remove());render();toast("Actual class saved")}else if(a==="restoreClass"){let dk=state.viewDate,i=Number(el.dataset.i);if(state.overrides[dk])delete state.overrides[dk][i];save();document.querySelectorAll(".modal").forEach(m=>m.remove());render();toast("Scheduled class restored")}else if(a==="saveExtra"){let dk=state.viewDate,sub=selectedSubject(),st=readTimePicker("extraStart"),en=readTimePicker("extraEnd");if(!sub||!st||!en){toast("Enter subject and times");return}state.extraClasses[dk]=state.extraClasses[dk]||[];state.extraClasses[dk].push([st,en,sub]);save();document.querySelectorAll(".modal").forEach(m=>m.remove());render();toast("Extra class added")}else if(a==="removeExtra"){let dk=state.viewDate,i=Number(el.dataset.i),base=(state.settings.schedule[parseKey(dk).getDay()]||[]).length,j=i-base;if(j<0||!state.extraClasses[dk]||!state.extraClasses[dk][j]){toast("Extra class not found");return}if(!attendanceEditable(dk,i)){toast("Saved past classes are locked");return}if(!await appConfirm("Delete this extra class? This will remove the extra class and its attendance entry for this date.","Delete extra class?"))return;state.extraClasses[dk].splice(j,1);let shiftStore=obj=>{if(!obj)return;let updates=[];Object.keys(obj).forEach(k=>{if(!k.startsWith(dk+"-"))return;let n=Number(k.slice(dk.length+1));if(!Number.isFinite(n)||n<i)return;if(n===i)updates.push([k,null]);else updates.push([k,dk+"-"+(n-1),obj[k]])});updates.forEach(x=>{if(x[1]===null){delete obj[x[0]]}else{delete obj[x[0]];obj[x[1]]=x[2]}})};shiftStore(state.status);shiftStore(state.records);shiftStore(draftStatus);save();document.querySelectorAll(".modal").forEach(m=>m.remove());render();toast("Extra class deleted");}else if(a==="filter"){state.statsFilter=el.dataset.v;render()}else if(a==="calPrev"){let d=parseKey(state.calendarMonth);state.calendarMonth=key(new Date(d.getFullYear(),d.getMonth()-1,1));save();render()}else if(a==="calNext"){let d=parseKey(state.calendarMonth);state.calendarMonth=key(new Date(d.getFullYear(),d.getMonth()+1,1));save();render()}else if(a==="calPick"){draftDate=null;draftStatus={};state.viewDate=el.dataset.v;window.__animateNavigation=true;state.tab="log";save();render()}else if(a==="edition"){state.settings.edition=el.dataset.v;state.settings.theme=(el.dataset.v==="earth-day"||el.dataset.v==="opal-dream"||el.dataset.v==="celestial-glass"||el.dataset.v==="photon-3d")?"light":"dark";save();applyTheme();render()}else if(a==="saveSettings"){let rollInput=document.getElementById("setRoll");if(!state.settings.rollLocked){let rn=(rollInput?rollInput.value:"").trim();if(!/^(?:[1-9]|[1-9][0-9]|100)$/.test(rn)){showAppAlert("Please fill your Roll Number first before saving settings.","⚠️ Save Roll Number First");return}if(!await appConfirm("Confirm roll number "+rn+"? Once saved, it cannot be changed.","Save Settings"))return;state.settings.rollNumber=rn;state.settings.rollLocked=true}state.settings.name=document.getElementById("setName").value.trim()||"Student";state.settings.course=document.getElementById("setCourse").value.trim()||"Course";state.settings.required=Math.max(1,Math.min(100,Number(document.getElementById("setRequired").value)||75));state.settings.unlockHour=6;state.settings.edition=state.settings.edition||"earth-day";state.settings.theme=(state.settings.edition==="earth-day"||state.settings.edition==="opal-dream"||state.settings.edition==="celestial-glass"||state.settings.edition==="photon-3d")?"light":"dark";save();applyTheme();render();toast("Settings saved")}else if(a==="schedule")scheduleModal();else if(a==="closeModal"){document.querySelectorAll(".modal").forEach(m=>m.remove())}else if(a==="addSession"){let box=document.getElementById("sch"+el.dataset.day),i=box.children.length;box.insertAdjacentHTML("beforeend",scheduleRow(el.dataset.day,i,["09:00","10:00","New Subject"]))}else if(a==="removeSession"){el.parentElement.remove()}else if(a==="saveSchedule"){let ns={};for(let day=1;day<=6;day++){ns[day]=[...document.querySelectorAll("#sch"+day+" > .schRow")].map(r=>{let sub=r.querySelector(".schSubject").value;if(sub==="__OTHER__")sub=r.querySelector(".schOther").value.trim();return [readTimePicker(r.querySelector(".schStart")),readTimePicker(r.querySelector(".schEnd")),sub]}).filter(x=>x[0]&&x[1]&&x[2])}state.settings.schedule=ns;save();document.querySelectorAll(".modal").forEach(m=>m.remove());render();toast("Schedule saved and will be used for future unsaved classes")}});
+document.addEventListener("click",async e=>{let el=e.target.closest("[data-act]");if(!el)return;let a=el.dataset.act;if(a==="studentLogin"){cloudAuthModal("student")}else if(a==="adminLogin"){cloudAuthModal("admin")}else if(a==="submitCloudLogin"){await handleCloudLogin(el.dataset.mode)}else if(a==="createStudentAccount"){studentCreateModal(document.getElementById("cloudEmail")?.value||"")}else if(a==="submitCreateStudent"){await handleCreateStudentAccount()}else if(a==="forgotFromLogin"){cloudForgotModal(document.getElementById("cloudEmail")?.value||"")}else if(a==="forgotPassword"){cloudForgotModal(cloudSession.user?.email||"")}else if(a==="sendReset"){await handlePasswordReset()}else if(a==="logout"){await handleCloudLogout()}else if(a==="syncNow"){await cloudQueueFull("manual")}else if(a==="adminDashboard"){await openAdminDashboard()}else if(a==="refreshAdmin"){await openAdminDashboard()}else if(a==="adminStudent"){await openAdminStudent(el.dataset.uid)}else if(a==="adminMonth"){adminCache.studentMonth=el.dataset.v;adminCache.studentFilter="all";render()}else if(a==="adminStudentFilter"){adminCache.studentFilter=el.dataset.v;render()}else if(a==="backFromAdmin"){state.adminPage=null;render()}else if(a==="backFromStudent"){state.adminPage="dashboard";adminCache.selected=null;render()}else if(a==="printAdminReport"){printAdminReport()}else if(a==="exportAdminPdf"){exportAdminPdf()}else if(a==="dailyInfo"){state.infoPage=true;render()}else if(a==="backFromInfo"){state.infoPage=false;render()}else if(a==="tab"){window.__animateNavigation=true;draftDate=null;draftStatus={};state.adminPage=null;adminCache.selected=null;adminCache.days=[];state.tab=el.dataset.v;save();render()}else if(a==="prev"){draftDate=null;draftStatus={};let d=add(parseKey(state.viewDate),-1);state.viewDate=key(d<START_DATE?START_DATE:d);save();render()}else if(a==="next"){draftDate=null;draftStatus={};state.viewDate=key(add(parseKey(state.viewDate),1));save();render()}else if(a==="today"){draftDate=null;draftStatus={};state.viewDate=key(today());save();render()}else if(a==="pickDate"||a==="dateInput")datePicker();else if(a==="confirmDate"){let inp=document.getElementById("pickerDate");if(inp&&inp.value){draftDate=null;draftStatus={};state.viewDate=inp.value;window.__animateNavigation=true;state.tab="log";save();document.querySelectorAll(".modal").forEach(m=>m.remove());render()}}else if(a==="status")setStatus(el.dataset.k,el.dataset.v);else if(a==="saveAttendance")saveAttendance(state.viewDate);else if(a==="holiday")toggleHoliday(state.viewDate);else if(a==="saveNote")setNote(state.viewDate,document.getElementById("dayNote").value);else if(a==="editClass")classModal(Number(el.dataset.i));else if(a==="addExtra")extraModal();else if(a==="openTimeWheel"){let box=el.closest(".timePicker");if(box)openTimeWheel(box)}else if(a==="saveClassEdit"){let i=Number(el.dataset.i),dk=state.viewDate,base=(state.settings.schedule[parseKey(dk).getDay()]||[]).length,sub=selectedSubject(),st=readTimePicker("actualStart"),en=readTimePicker("actualEnd");if(!sub||!st||!en){toast("Enter subject and times");return}if(i<base){state.overrides[dk]=state.overrides[dk]||{};state.overrides[dk][i]={subject:sub,start:st,end:en}}else{let j=i-base;state.extraClasses[dk][j]=[st,en,sub]}save();cloudQueue("class",dk);document.querySelectorAll(".modal").forEach(m=>m.remove());render();toast("Actual class saved")}else if(a==="restoreClass"){let dk=state.viewDate,i=Number(el.dataset.i);if(state.overrides[dk])delete state.overrides[dk][i];save();cloudQueue("class",dk);document.querySelectorAll(".modal").forEach(m=>m.remove());render();toast("Scheduled class restored")}else if(a==="saveExtra"){let dk=state.viewDate,sub=selectedSubject(),st=readTimePicker("extraStart"),en=readTimePicker("extraEnd");if(!sub||!st||!en){toast("Enter subject and times");return}state.extraClasses[dk]=state.extraClasses[dk]||[];state.extraClasses[dk].push([st,en,sub]);save();cloudQueue("extra",dk);document.querySelectorAll(".modal").forEach(m=>m.remove());render();toast("Extra class added")}else if(a==="removeExtra"){let dk=state.viewDate,i=Number(el.dataset.i),base=(state.settings.schedule[parseKey(dk).getDay()]||[]).length,j=i-base;if(j<0||!state.extraClasses[dk]||!state.extraClasses[dk][j]){toast("Extra class not found");return}if(!attendanceEditable(dk,i)){toast("Saved past classes are locked");return}if(!await appConfirm("Delete this extra class? This will remove the extra class and its attendance entry for this date.","Delete extra class?"))return;state.extraClasses[dk].splice(j,1);let shiftStore=obj=>{if(!obj)return;let updates=[];Object.keys(obj).forEach(k=>{if(!k.startsWith(dk+"-"))return;let n=Number(k.slice(dk.length+1));if(!Number.isFinite(n)||n<i)return;if(n===i)updates.push([k,null]);else updates.push([k,dk+"-"+(n-1),obj[k]])});updates.forEach(x=>{if(x[1]===null){delete obj[x[0]]}else{delete obj[x[0]];obj[x[1]]=x[2]}})};shiftStore(state.status);shiftStore(state.records);shiftStore(draftStatus);save();cloudQueue("extra",dk);document.querySelectorAll(".modal").forEach(m=>m.remove());render();toast("Extra class deleted");}else if(a==="filter"){state.statsFilter=el.dataset.v;render()}else if(a==="calPrev"){let d=parseKey(state.calendarMonth);state.calendarMonth=key(new Date(d.getFullYear(),d.getMonth()-1,1));save();render()}else if(a==="calNext"){let d=parseKey(state.calendarMonth);state.calendarMonth=key(new Date(d.getFullYear(),d.getMonth()+1,1));save();render()}else if(a==="calPick"){draftDate=null;draftStatus={};state.viewDate=el.dataset.v;window.__animateNavigation=true;state.tab="log";save();render()}else if(a==="edition"){state.settings.edition=el.dataset.v;state.settings.theme=(el.dataset.v==="earth-day"||el.dataset.v==="opal-dream"||el.dataset.v==="celestial-glass"||el.dataset.v==="photon-3d")?"light":"dark";save();cloudQueue("edition");applyTheme();render()}else if(a==="saveSettings"){let rollInput=document.getElementById("setRoll");if(!state.settings.rollLocked){let rn=(rollInput?rollInput.value:"").trim();if(!/^(?:[1-9]|[1-9][0-9]|100)$/.test(rn)){showAppAlert("Please fill your Roll Number first before saving settings.","⚠️ Save Roll Number First");return}if(!await appConfirm("Confirm roll number "+rn+"? Once saved, it cannot be changed.","Save Settings"))return;state.settings.rollNumber=rn;state.settings.rollLocked=true}state.settings.name=document.getElementById("setName").value.trim()||"Student";state.settings.course=document.getElementById("setCourse").value.trim()||"Course";state.settings.required=Math.max(1,Math.min(100,Number(document.getElementById("setRequired").value)||75));state.settings.unlockHour=6;state.settings.edition=state.settings.edition||"earth-day";state.settings.theme=(state.settings.edition==="earth-day"||state.settings.edition==="opal-dream"||state.settings.edition==="celestial-glass"||state.settings.edition==="photon-3d")?"light":"dark";save();cloudQueue("settings");applyTheme();render();toast("Settings saved")}else if(a==="schedule")scheduleModal();else if(a==="closeModal"){document.querySelectorAll(".modal").forEach(m=>m.remove())}else if(a==="addSession"){let box=document.getElementById("sch"+el.dataset.day),i=box.children.length;box.insertAdjacentHTML("beforeend",scheduleRow(el.dataset.day,i,["09:00","10:00","New Subject"]))}else if(a==="removeSession"){el.parentElement.remove()}else if(a==="saveSchedule"){let ns={};for(let day=1;day<=6;day++){ns[day]=[...document.querySelectorAll("#sch"+day+" > .schRow")].map(r=>{let sub=r.querySelector(".schSubject").value;if(sub==="__OTHER__")sub=r.querySelector(".schOther").value.trim();return [readTimePicker(r.querySelector(".schStart")),readTimePicker(r.querySelector(".schEnd")),sub]}).filter(x=>x[0]&&x[1]&&x[2])}state.settings.schedule=ns;save();cloudQueue("schedule");document.querySelectorAll(".modal").forEach(m=>m.remove());render();toast("Schedule saved and will be used for future unsaved classes")}});
 
+
+async function handleCreateStudentAccount(){
+  const name=(document.getElementById('createName')?.value||'').trim();
+  const email=(document.getElementById('createEmail')?.value||'').trim();
+  const password=document.getElementById('createPassword')?.value||'';
+  const password2=document.getElementById('createPassword2')?.value||'';
+  const err=document.getElementById('createAccountError');
+  if(!name){if(err)err.textContent='Enter your name.';return}
+  if(!email){if(err)err.textContent='Enter your email address.';return}
+  if(password.length<6){if(err)err.textContent='Password must be at least 6 characters.';return}
+  if(password!==password2){if(err)err.textContent='Passwords do not match.';return}
+  try{
+    if(err)err.textContent='Creating account…';
+    await window.AttendanceCloud.createStudentAccount(email,password);
+    state.settings.name=name; save();
+    document.querySelectorAll('.modal').forEach(m=>m.remove());
+    toast('Student account created. Your existing data will now sync.');
+  }catch(e){if(err)err.textContent=friendlyAuthError(e)}
+}
+async function handleCloudLogin(mode){
+  const email=(document.getElementById("cloudEmail")?.value||"").trim(),password=document.getElementById("cloudPassword")?.value||"",err=document.getElementById("cloudAuthError");
+  if(!email||!password){if(err)err.textContent="Enter email and password.";return}
+  if(!window.AttendanceCloud){if(err)err.textContent="Firebase is still loading. Try again in a moment.";return}
+  try{
+    if(mode==="admin")await window.AttendanceCloud.signInAdmin(email,password);else await window.AttendanceCloud.signIn(email,password);
+    document.querySelectorAll('.modal').forEach(m=>m.remove());
+  }catch(e){if(err)err.textContent=e?.code==="auth/admin-required"?"This account is not authorized as an Admin.":friendlyAuthError(e)}
+}
+function friendlyAuthError(e){const c=e?.code||"";if(c.includes("invalid-credential"))return"Incorrect email or password.";if(c.includes("user-not-found"))return"No account was found with this email.";if(c.includes("wrong-password"))return"Incorrect password.";if(c.includes("invalid-email"))return"Enter a valid email address.";if(c.includes("too-many-requests"))return"Too many attempts. Please try again later.";return e?.message||"Sign-in failed."}
+async function handlePasswordReset(){const email=(document.getElementById("resetEmail")?.value||"").trim(),err=document.getElementById("resetError");if(!email){if(err)err.textContent="Enter your email address.";return}try{await window.AttendanceCloud.sendPasswordResetEmail(email);if(err)err.className="cloudAuthSuccess";if(err)err.textContent="Password-reset email sent. Check your inbox."}catch(e){if(err)err.textContent=friendlyAuthError(e)}}
+async function handleCloudLogout(){
+  // Logout must clear account-specific app data, but the user-selected visual theme
+  // is a device/UI preference and must survive logout/login.
+  const savedTheme=state?.settings?.theme||"light";
+  const savedEdition=state?.settings?.edition||"earth-day";
+  if(window.AttendanceCloud)await window.AttendanceCloud.signOut();
+  state=defaultState();
+  state.settings.theme=savedTheme;
+  state.settings.edition=savedEdition;
+  state.adminPage=null;
+  adminCache={students:[],selected:null,days:[],studentMonth:"",studentFilter:"all"};
+  save();
+  applyTheme();
+  render();
+  toast("Logged out");
+}
+async function hydrateAfterLogin(user){
+  try{
+    const localBefore=clone(state);
+    const localHasData=hasMeaningfulLocalData(localBefore);
+    const profile=await window.AttendanceCloud.getProfile(user.uid);
+    if(profile?.updatedAt){const t=new Date(profile.updatedAt);if(!Number.isNaN(t.getTime()))cloudSession.lastSync=t;}
+    const migrated=localStorage.getItem(CLOUD_MIGRATION_KEY+":"+user.uid)==="1" || !!profile?.migrationV105;
+    if(!migrated && localHasData){
+      // Existing phone data is the migration source on first Firebase login.
+      // Never replace it with an empty/new cloud profile.
+      localStorage.setItem("attendance-tracker-local-backup-v105:"+user.uid,JSON.stringify(localBefore));
+      await window.AttendanceCloud.syncFullState(user.uid,localBefore,user,buildCloudSessionSnapshots(localBefore));
+      await window.AttendanceCloud.markMigrationComplete(user.uid);
+      localStorage.setItem(CLOUD_MIGRATION_KEY+":"+user.uid,"1");
+      localStorage.removeItem(CLOUD_PENDING_KEY);
+      cloudSession.lastSync=new Date(); cloudSession.error="";
+      updateCloudStatus();
+      render();
+      toast("Your existing phone data was safely migrated to cloud");
+      return;
+    }
+    if(profile){
+      if(localStorage.getItem(CLOUD_PENDING_KEY)==="1"){
+        await cloudQueueFull("pending-offline");
+        toast("Pending local changes are being synced to cloud");
+      }else{
+        const remote=await window.AttendanceCloud.readState(user.uid,state);
+        if(remote){const ui={tab:state.tab,viewDate:state.viewDate,calendarMonth:state.calendarMonth,statsFilter:state.statsFilter};state=remote;state.tab=ui.tab;state.viewDate=ui.viewDate;state.calendarMonth=ui.calendarMonth;state.statsFilter=ui.statsFilter;save();applyTheme();render();toast("Cloud data loaded")}
+      }
+    }else{
+      await window.AttendanceCloud.syncFullState(user.uid,localBefore,user,buildCloudSessionSnapshots(localBefore));
+      await window.AttendanceCloud.markMigrationComplete(user.uid);
+      localStorage.setItem(CLOUD_MIGRATION_KEY+":"+user.uid,"1");
+      cloudSession.lastSync=new Date();updateCloudStatus();
+      toast("Cloud account created from this device's saved data");
+    }
+  }catch(e){cloudSession.error=cloudErrorText(e);updateCloudStatus();toast("Cloud sync failed — see Account & Cloud for the exact Firebase error")}
+}
+function hasMeaningfulLocalData(s){
+  if(!s)return false;
+  const st=s.settings||{};
+  return Object.keys(s.status||{}).length||Object.keys(s.records||{}).length||Object.keys(s.notes||{}).length||Object.keys(s.holidays||{}).length||Object.keys(s.overrides||{}).length||Object.keys(s.extraClasses||{}).length||!!st.rollLocked||!!st.rollNumber||!!st.name&&st.name!=="Sharad Sourav";
+}
+
+async function openAdminDashboard(){
+  if(!cloudSession.admin)return;state.adminPage="dashboard";adminCache.selected=null;render();
+  try{adminCache.students=await window.AttendanceCloud.listStudents();cloudSession.lastSync=new Date();cloudSession.error="";localStorage.setItem(ADMIN_CLOUD_SYNC_KEY,cloudSession.lastSync.toISOString());updateCloudStatus();render()}catch(e){cloudSession.error=e?.message||"Admin data could not be loaded";updateCloudStatus();toast("Could not load student data")}
+}
+async function openAdminStudent(uid){
+  state.adminPage="student";adminCache.selected=uid;adminCache.days=[];adminCache.studentMonth="";adminCache.studentFilter="all";render();
+  try{adminCache.days=await window.AttendanceCloud.studentDays(uid);render()}catch(e){toast("Could not load student records");state.adminPage="dashboard";render()}
+}
+function hideStartupWait(){
+  const el=document.getElementById("startupWait");
+  if(el)el.classList.add("hidden");
+}
+function setupFirebaseEvents(){
+  const onReady=()=>{cloudSession.ready=true;window.AttendanceCloud?.auth&&updateCloudStatus()};
+  window.addEventListener("firebase-cloud-ready",onReady,{once:true});
+  window.addEventListener("firebase-auth-state",e=>{const user=e.detail?.user||null;cloudSession.user=user;cloudSession.admin=!!e.detail?.admin;if(!user){cloudSession.error="";cloudSession.lastSync=null;state.adminPage=null;adminCache={students:[],selected:null,days:[],studentMonth:"",studentFilter:"all"};updateCloudStatus();render();hideStartupWait();return}cloudSession.error="";state.adminPage=null;adminCache={students:[],selected:null,days:[],studentMonth:"",studentFilter:"all"};updateCloudStatus();render();hideStartupWait();if(!cloudSession.admin){hydrateAfterLogin(user).then(()=>{updateCloudStatus()}).catch(()=>{updateCloudStatus()})}else{cloudSession.lastSync=readAdminLastSync();window.AttendanceCloud.listStudents().then(students=>{adminCache.students=students;cloudSession.lastSync=new Date();localStorage.setItem(ADMIN_CLOUD_SYNC_KEY,cloudSession.lastSync.toISOString());updateCloudStatus()}).catch(err=>{cloudSession.error=err?.message||"Admin cloud sync failed";updateCloudStatus()})}});
+  if(window.AttendanceCloud)onReady();
+  setInterval(()=>{if(cloudSession.user && window.AttendanceCloud && !document.hidden)cloudQueueFull("interval")},CLOUD_SYNC_INTERVAL);
+  window.addEventListener("online",()=>{if(cloudSession.user && window.AttendanceCloud)cloudQueueFull("reconnect")});
+}
+setupFirebaseEvents();
 function checkDay(){let cur=key(today());if(state.viewDate<key(START_DATE)){state.viewDate=key(START_DATE);save();render()}}document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")checkDay()});window.addEventListener("focus",checkDay);setInterval(checkDay,60000);
 const ACTIVATION_KEY="attendance-tracker-activated-v1";
 const ACTIVATION_CODE="Med@2026#Sharad!K7p9";
@@ -260,7 +627,15 @@ state.tab="log";
 state.viewDate=key(today());
 state.calendarMonth=key(new Date(today().getFullYear(),today().getMonth(),1));
 save();
-applyTheme();watchSystemTheme();render();document.documentElement.classList.remove("preboot");if(document.readyState==="loading"){document.addEventListener("DOMContentLoaded",activateGate,{once:true});}else{activateGate();}if("serviceWorker" in navigator)window.addEventListener("load",()=>navigator.serviceWorker.register("sw.js?v=100",{updateViaCache:"none"}).catch(()=>{}));
+watchSystemTheme();
+render();
+if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",activateGate,{once:true});
+else activateGate();
+if("serviceWorker" in navigator){
+  const registerSW=()=>navigator.serviceWorker.register("sw.js?v=157",{updateViaCache:"none"}).catch(()=>{});
+  if("requestIdleCallback" in window)requestIdleCallback(registerSW,{timeout:1500});
+  else setTimeout(registerSW,800);
+}
 
 function openManageSchedule(){
   document.querySelectorAll('.modal').forEach(m=>m.remove());
@@ -302,7 +677,7 @@ function saveManageSchedule(){
     }).filter(x=>x[0]&&x[1]&&x[2]);
   }
   state.settings.schedule=ns;
-  save(); closeManageSchedule(); render(); toast('Schedule saved successfully');
+  save(); cloudQueue("schedule"); closeManageSchedule(); render(); toast('Schedule saved successfully');
 }
 window.openManageSchedule=openManageSchedule;window.closeManageSchedule=closeManageSchedule;window.saveManageSchedule=saveManageSchedule;window.addFreshScheduleRow=addFreshScheduleRow;window.freshOtherToggle=freshOtherToggle;
 

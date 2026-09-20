@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" class="preboot">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
@@ -7,10 +7,30 @@
 <meta name="theme-color" content="#2A5C54">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon-192.png">
+<link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+<link rel="preload" href="styles.css" as="style">
+<link rel="preload" href="app.js" as="script">
 <style>
 html,body{margin:0;min-height:100%;background:#f4f6f5}
 html[data-theme="dark"],html[data-theme="dark"] body{background:#121817}
-html.preboot body{visibility:hidden}
+.bootApp{min-height:100vh;display:flex;flex-direction:column;background:var(--bg,#f4f6f5)}
+.bootHeader{padding:18px 16px 12px}
+.bootBrand{font-size:22px;font-weight:800;line-height:1.2}
+.bootSub{font-size:12px;opacity:.68;margin-top:5px}
+.bootMain{flex:1}
+.bootNav{position:fixed;left:0;right:0;bottom:0;display:grid;grid-template-columns:repeat(4,1fr);gap:6px;padding:8px 10px calc(8px + env(safe-area-inset-bottom));box-sizing:border-box}
+.bootNav span{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:46px;font-size:12px;font-weight:700;opacity:.9}
+.bootNav b{font-size:18px;line-height:1;margin-bottom:3px}
+.startupWait{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;text-align:center;padding:24px;box-sizing:border-box;background:inherit;color:inherit;transition:opacity .16s ease,visibility .16s ease}
+.startupWait.hidden{opacity:0;visibility:hidden;pointer-events:none}
+.startupWaitInner{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;max-width:300px}
+.startupIcon{font-family:Arial,sans-serif;font-size:76px;line-height:1;display:none;transform-style:preserve-3d;will-change:transform;position:relative;min-width:90px;min-height:76px;align-items:center;justify-content:center}
+.startupIcon.active{display:flex}
+.startupIcon.spin3d{animation:startupSpin3D 1.8s linear infinite}
+@keyframes startupSpin3D{from{transform:perspective(260px) rotateY(0deg)}to{transform:perspective(260px) rotateY(360deg)}}
+.startupWaitTitle{font-size:20px;font-weight:800;line-height:1.2}
+.startupWaitText{font-size:14px;line-height:1.45;opacity:.78}
+@media (prefers-reduced-motion:reduce){.startupIcon{animation:none!important}}
 </style>
 <script>
 (function(){
@@ -21,13 +41,53 @@ html.preboot body{visibility:hidden}
     if(theme!=="light"&&theme!=="dark"&&theme!=="system")theme="system";
     const dark=theme==="dark"||(theme==="system"&&window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches);
     document.documentElement.setAttribute("data-theme",dark?"dark":"light");
-  }catch(e){document.documentElement.setAttribute("data-theme","light")}
+    const editions=["earth-day","earth-night","nebula-glass","galactic-night","black-hole","heart-nebula","roshni","opal-dream","celestial-glass","outer-space-3d","photon-3d"];
+    const edition=editions.includes(settings.edition)?settings.edition:"earth-day";
+    document.documentElement.setAttribute("data-edition",edition);
+  }catch(e){document.documentElement.setAttribute("data-theme","light");document.documentElement.setAttribute("data-edition","earth-day")}
 })();
 </script>
 <link rel="stylesheet" href="styles.css">
+
 </head>
 <body>
-<div id="app"></div>
+<script>
+(function(){
+  try{
+    const edition=document.documentElement.getAttribute("data-edition")||"earth-day";
+    document.body.classList.add(edition);
+    document.body.setAttribute("data-edition",edition);
+  }catch(e){document.body.classList.add("earth-day")}
+})();
+</script>
+<div id="startupWait" class="startupWait" aria-live="polite">
+  <div class="startupWaitInner">
+    <div id="startupIcon" class="startupIcon" aria-hidden="true"></div>
+    <div class="startupWaitTitle">Please wait</div>
+    <div class="startupWaitText">We are getting your login details…</div>
+  </div>
+</div>
+<script>
+(function(){
+  try{
+    const icons=[
+      '⚕','❤️','🩺','💊'
+    ];
+    const pick=icons[Math.floor(Math.random()*icons.length)];
+    const el=document.getElementById('startupIcon');
+    if(el){el.className='startupIcon spin3d active';el.textContent=pick}
+  }catch(e){
+    const el=document.getElementById('startupIcon');
+    if(el){el.className='startupIcon spin3d active';el.textContent='⚕'}
+  }
+})();
+</script>
+<div id="app"><div class="bootApp">
+  <div class="bootHeader"><div class="bootBrand">▣ Attendance</div><div class="bootSub">7 Sep 2026 onwards · 3rd Prof Part-II</div><div class="bootSub">Personal attendance tracker</div></div>
+  <div class="bootMain"></div>
+  <div class="bootNav"><span><b>▣</b>Log</span><span><b>▦</b>Calendar</span><span><b>▥</b>Stats</span><span><b>⚙</b>Settings</span></div>
+</div></div>
+<script type="module" src="firebase-cloud.js"></script>
 <script src="app.js"></script>
 <div id="appAlertOverlay" class="app-alert-overlay" role="dialog" aria-modal="true" aria-labelledby="appAlertTitle">
   <div class="app-alert-box">

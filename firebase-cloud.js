@@ -16,6 +16,10 @@ const auth = getAuth(app);
 const db = initializeFirestore(app, { ignoreUndefinedProperties: true });
 const USERS = "attendanceUsers";
 
+// Firestore does not allow arrays nested inside arrays. The attendance state can
+// legitimately contain nested arrays in schedule/session configuration, so the
+// cloud layer stores every array through a small marker object and restores the
+// original arrays when reading. This keeps the app's in-memory data unchanged.
 const ARRAY_MARKER = "$attendance_tracker_array";
 
 function toFirestoreSafe(value, seen = new WeakSet()) {
@@ -52,6 +56,7 @@ function fromFirestoreSafe(value, seen = new WeakSet()) {
     return Array.isArray(encoded) ? encoded.map(item => fromFirestoreSafe(item, seen)) : [];
   }
 
+  // Preserve Firestore Timestamp / GeoPoint / other SDK value objects.
   if (typeof value.toDate === "function" || typeof value.toMillis === "function" || typeof value.latitude === "number" && typeof value.longitude === "number") {
     return value;
   }
@@ -148,6 +153,8 @@ async function syncProfile(uid,state,user){
 
 async function syncDay(uid,date,state,sessions=[]){
   const payload=dayPayload(date,state,sessions);
+  // Replace the complete logical day record. This is intentional: merge:true
+  // would leave deleted/changed fields behind in Firestore.
   try{
     if(hasDayData(payload)) await setDoc(dayRef(uid,date),toFirestoreSafe(payload),{merge:false});
     else await deleteDoc(dayRef(uid,date));
@@ -193,6 +200,9 @@ async function signInAdmin(email,password){
 }
 async function currentAdmin(){
   if(!auth.currentUser)return false;
+  // Use the already-cached ID token during startup. A forced refresh here was
+  // making every app launch wait for an extra network round-trip. Admin login
+  // itself still performs the explicit forced refresh in signInAdmin().
   const token=await auth.currentUser.getIdTokenResult(false);return token.claims?.admin===true;
 }
 
